@@ -1,0 +1,274 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Activity, ArrowRight, ArrowUpRight, Check, ChevronDown, Copy, Download, ExternalLink, Eye, FileText, Globe2, Image as ImageIcon, KeyRound, LayoutDashboard, Link2, Menu, PenLine, Plus, RefreshCw, Search, Send, Settings2, Trash2, Video, X } from "lucide-react";
+import { platforms, platformById, type Platform } from "@/lib/catalog";
+
+type Article = { id: string; title: string; excerpt: string; body: string; keywords: string[]; coverUrl: string; videoUrl: string; canonicalUrl: string; createdAt: string; updatedAt: string };
+type Draft = Omit<Article, "createdAt" | "updatedAt">;
+type Delivery = { id: string; articleId: string; platformId: string; state: string; url: string; error: string; views: number; publishedAt: string | null; updatedAt: string };
+type Setting = { platformId: string; siteId: string; enabled: boolean };
+type Data = { articles: Article[]; deliveries: Delivery[]; settings: Setting[] };
+type Section = "overview" | "compose" | "platforms" | "activity";
+
+const blank: Draft = { id: "", title: "", excerpt: "", body: "", keywords: [], coverUrl: "", videoUrl: "", canonicalUrl: "" };
+
+async function request<T = Record<string, any>>(path: string, method = "GET", body?: unknown): Promise<T> {
+  const response = await fetch(path, { method, headers: body ? { "Content-Type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined, cache: "no-store" });
+  const data = await response.json() as Record<string, any>;
+  if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
+  return data as T;
+}
+
+function shortDate(value?: string | null) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
+}
+
+function initials(name: string) {
+  return name.split(/[\s@._-]+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "BP";
+}
+
+function editorCopy(article: Draft) {
+  return `${article.title}\n\n${article.coverUrl ? `![${article.title}](${article.coverUrl})\n\n` : ""}${article.body}${article.videoUrl ? `\n\nVideo: ${article.videoUrl}` : ""}${article.keywords.length ? `\n\nKeywords: ${article.keywords.join(", ")}` : ""}`;
+}
+
+export default function Studio({ displayName }: { displayName: string }) {
+  const [section, setSection] = useState<Section>("overview");
+  const [data, setData] = useState<Data>({ articles: [], deliveries: [], settings: [] });
+  const [loading, setLoading] = useState(true);
+  const [draft, setDraft] = useState<Draft>(blank);
+  const [selected, setSelected] = useState<string[]>([]);
+  const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
+  const [platformModal, setPlatformModal] = useState<Platform | null>(null);
+  const [configToken, setConfigToken] = useState("");
+  const [configSiteId, setConfigSiteId] = useState("");
+  const [manualQueue, setManualQueue] = useState<string[]>([]);
+  const [manualUrl, setManualUrl] = useState("");
+  const [viewsDelivery, setViewsDelivery] = useState<Delivery | null>(null);
+  const [viewsInput, setViewsInput] = useState("0");
+  const [mobileNav, setMobileNav] = useState(false);
+  const [sessionTokens, setSessionTokens] = useState<string[]>([]);
+
+  async function reload() {
+    try {
+      setData(await request<Data>("/api/bootstrap"));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not load workspace.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    setSessionTokens(platforms.filter((platform) => platform.method === "api" && !!sessionStorage.getItem(`bp-token-${platform.id}`)).map((platform) => platform.id));
+    void reload();
+  }, []);
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => setMessage(""), 6500);
+    return () => clearTimeout(timer);
+  }, [message]);
+
+  const published = data.deliveries.filter((item) => item.state === "published");
+  const views = published.reduce((total, item) => total + item.views, 0);
+  const connected = sessionTokens.length;
+  const categories = ["All", ...new Set(platforms.map((platform) => platform.category))];
+  const filteredPlatforms = platforms.filter((platform) => (filter === "All" || platform.category === filter) && `${platform.name} ${platform.category}`.toLowerCase().includes(search.toLowerCase()));
+  const currentManual = manualQueue[0] ? platformById[manualQueue[0]] : null;
+  const articlePublished = useMemo(() => new Set(published.map((item) => item.articleId)), [data.deliveries]);
+
+  function edit(article: Article) {
+    setDraft({ id: article.id, title: article.title, excerpt: article.excerpt, body: article.body, keywords: article.keywords, coverUrl: article.coverUrl, videoUrl: article.videoUrl, canonicalUrl: article.canonicalUrl });
+    setSelected([]);
+    setSection("compose");
+    setMobileNav(false);
+  }
+
+  function newArticle() {
+    setDraft({ ...blank });
+    setSelected([]);
+    setSection("compose");
+    setMobileNav(false);
+  }
+
+  async function saveArticle(): Promise<string> {
+    if (!draft.title.trim()) throw new Error("Add a title before saving.");
+    const result = await request("/api/articles", "POST", draft);
+    setDraft((current) => ({ ...current, id: result.id }));
+    await reload();
+    return result.id;
+  }
+
+  async function saveClick() {
+    setBusy(true);
+    try { await saveArticle(); setMessage("Article saved."); }
+    catch (error) { setMessage(error instanceof Error ? error.message : "Could not save article."); }
+    finally { setBusy(false); }
+  }
+
+  async function deleteArticle() {
+    if (!draft.id || !confirm("Delete this article and its publication records?")) return;
+    setBusy(true);
+    try {
+      await request("/api/articles", "DELETE", { id: draft.id });
+      setDraft({ ...blank });
+      await reload();
+      setMessage("Article deleted.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not delete article."); }
+    finally { setBusy(false); }
+  }
+
+  async function publishSelected() {
+    if (!selected.length) return setMessage("Select at least one destination.");
+    if (!draft.body.trim()) return setMessage("Add article text before publishing.");
+    setBusy(true);
+    try {
+      const articleId = await saveArticle();
+      const guided: string[] = [];
+      const outcomes: string[] = [];
+      for (const id of selected) {
+        const platform = platformById[id];
+        if (platform.method === "guided") { guided.push(id); continue; }
+        const token = sessionStorage.getItem(`bp-token-${id}`) || "";
+        if (!token) { outcomes.push(`${platform.name}: add a token in Platforms`); continue; }
+        const siteId = data.settings.find((setting) => setting.platformId === id)?.siteId || "";
+        try {
+          await request("/api/publish", "POST", { articleId, platformId: id, token, siteId });
+          outcomes.push(`${platform.name}: published`);
+        } catch (error) { outcomes.push(`${platform.name}: ${error instanceof Error ? error.message : "failed"}`); }
+      }
+      await reload();
+      setManualQueue(guided);
+      setManualUrl("");
+      setMessage(outcomes.length ? outcomes.join(" · ") : guided.length ? "Guided destinations are ready." : "Nothing to publish.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not publish."); }
+    finally { setBusy(false); }
+  }
+
+  async function recordManual() {
+    if (!currentManual || !draft.id) return;
+    setBusy(true);
+    try {
+      await request("/api/deliveries", "POST", { articleId: draft.id, platformId: currentManual.id, url: manualUrl, views: 0 });
+      await reload();
+      setManualQueue((queue) => queue.slice(1));
+      setManualUrl("");
+      setMessage(`Recorded ${currentManual.name} publication.`);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not record URL."); }
+    finally { setBusy(false); }
+  }
+
+  async function copyText(value: string) {
+    try { await navigator.clipboard.writeText(value); setMessage("Copied to clipboard."); }
+    catch { setMessage("Clipboard access is unavailable. Select and copy the text from the editor."); }
+  }
+
+  function downloadMarkdown() {
+    const blob = new Blob([editorCopy(draft)], { type: "text/markdown;charset=utf-8" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${draft.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "article"}.md`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
+
+  function openSettings(platform: Platform) {
+    setPlatformModal(platform);
+    setConfigToken(sessionStorage.getItem(`bp-token-${platform.id}`) || "");
+    setConfigSiteId(data.settings.find((setting) => setting.platformId === platform.id)?.siteId || "");
+  }
+
+  async function saveSettings() {
+    if (!platformModal) return;
+    setBusy(true);
+    try {
+      await request("/api/settings", "POST", { platformId: platformModal.id, siteId: configSiteId, enabled: true });
+      if (configToken.trim()) sessionStorage.setItem(`bp-token-${platformModal.id}`, configToken.trim());
+      else sessionStorage.removeItem(`bp-token-${platformModal.id}`);
+      setSessionTokens(platforms.filter((platform) => platform.method === "api" && !!sessionStorage.getItem(`bp-token-${platform.id}`)).map((platform) => platform.id));
+      await reload();
+      setPlatformModal(null);
+      setMessage("Platform settings saved. Credentials stay in this browser session.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not save settings."); }
+    finally { setBusy(false); }
+  }
+
+  async function saveViews() {
+    if (!viewsDelivery) return;
+    setBusy(true);
+    try {
+      await request("/api/deliveries", "POST", { articleId: viewsDelivery.articleId, platformId: viewsDelivery.platformId, url: viewsDelivery.url, views: Number(viewsInput) });
+      await reload();
+      setViewsDelivery(null);
+      setMessage("View count updated.");
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not update views."); }
+    finally { setBusy(false); }
+  }
+
+  async function refreshDev() {
+    const token = sessionStorage.getItem("bp-token-dev") || "";
+    setBusy(true);
+    try {
+      const result = await request("/api/dev-stats", "POST", { token });
+      await reload();
+      setMessage(`Refreshed ${result.updated} DEV article${result.updated === 1 ? "" : "s"}.`);
+    } catch (error) { setMessage(error instanceof Error ? error.message : "Could not refresh DEV views."); }
+    finally { setBusy(false); }
+  }
+
+  function nav(to: Section) { setSection(to); setMobileNav(false); }
+
+  return (
+    <div className="app-shell">
+      <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""}`}>
+        <div className="brand"><div className="brand-mark"><span>B</span></div><div><strong>Bulk Publisher</strong><small>STUDIO</small></div><button className="mobile-close" onClick={() => setMobileNav(false)} aria-label="Close menu"><X size={18} /></button></div>
+        <div className="nav-label">WORKSPACE</div>
+        <nav className="main-nav" aria-label="Main navigation">
+          <button className={section === "overview" ? "active" : ""} onClick={() => nav("overview")}><LayoutDashboard size={19} /> Overview</button>
+          <button className={section === "compose" ? "active" : ""} onClick={() => nav("compose")}><PenLine size={19} /> Compose <span className="nav-count">{data.articles.length}</span></button>
+          <button className={section === "platforms" ? "active" : ""} onClick={() => nav("platforms")}><Globe2 size={19} /> Platforms <span className="nav-count">20</span></button>
+          <button className={section === "activity" ? "active" : ""} onClick={() => nav("activity")}><Activity size={19} /> Activity</button>
+        </nav>
+        <div className="sidebar-bottom"><div className="sidebar-tip"><div className="tip-icon"><Send size={17} /></div><strong>Publish with confidence</strong><p>Review each platform's rules and add a canonical URL when republishing.</p></div><div className="profile"><span className="avatar">{initials(displayName)}</span><span className="profile-text"><strong>{displayName.split("@")[0]}</strong><small>Private workspace</small></span><span className="status-dot" /></div></div>
+      </aside>
+
+      <main className="main">
+        <header className="topbar"><button className="mobile-menu" onClick={() => setMobileNav(true)} aria-label="Open menu"><Menu size={21} /></button><div className="breadcrumb">Workspace <span>/</span> <strong>{section[0].toUpperCase() + section.slice(1)}</strong></div><div className="topbar-actions"><span className="live-indicator"><span /> Live workspace</span><button className="top-new" onClick={newArticle}><Plus size={16} /> New article</button></div></header>
+        <div className="page-content">
+          {loading ? <div className="loading"><RefreshCw className="spin" size={23} /> Loading your workspace…</div> : null}
+          {!loading && section === "overview" && <>
+            <div className="page-heading"><div><span className="eyebrow">YOUR PUBLISHING DESK</span><h1>Good to see you, {displayName.split(/[ @]/)[0]}.</h1><p>One place to write, distribute, and track every article.</p></div><button className="button-primary" onClick={newArticle}><Plus size={18} /> Create article</button></div>
+            <div className="stats-grid"><div className="stat-card"><span className="stat-icon violet"><FileText size={21} /></span><span className="stat-label">Articles</span><strong>{data.articles.length}</strong><small>In your library</small></div><div className="stat-card"><span className="stat-icon peach"><Send size={21} /></span><span className="stat-label">Publications</span><strong>{published.length}</strong><small>Across {new Set(published.map((item) => item.platformId)).size} destinations</small></div><div className="stat-card"><span className="stat-icon blue"><Eye size={21} /></span><span className="stat-label">Recorded views</span><strong>{views.toLocaleString()}</strong><small>DEV sync + your entries</small></div><div className="stat-card"><span className="stat-icon mint"><Globe2 size={21} /></span><span className="stat-label">API sessions</span><strong>{connected}<span className="stat-denominator"> / 3</span></strong><small>Available this browser session</small></div></div>
+            <div className="overview-grid"><section className="panel"><div className="panel-head"><div><h2>Recent articles</h2><p>Your latest drafts and published work</p></div><button className="text-button" onClick={() => nav("compose")}>Open library <ArrowRight size={16} /></button></div>{data.articles.length ? <div className="article-list">{data.articles.slice(0, 5).map((article) => <button className="article-row" key={article.id} onClick={() => edit(article)}><span className="article-icon"><FileText size={18} /></span><span className="article-info"><strong>{article.title}</strong><small>{article.keywords.slice(0, 3).join(" · ") || "No keywords yet"}</small></span><span className={`pill ${articlePublished.has(article.id) ? "pill-success" : "pill-draft"}`}>{articlePublished.has(article.id) ? "Published" : "Draft"}</span><span className="article-date">{shortDate(article.updatedAt)}</span><ArrowUpRight size={16} /></button>)}</div> : <div className="empty-panel"><span><PenLine size={23} /></span><strong>Your first article starts here</strong><p>Draft once, then choose where to publish it.</p><button className="button-primary small" onClick={newArticle}>Write an article</button></div>}</section><section className="panel pulse-panel"><div className="panel-head"><div><h2>Distribution pulse</h2><p>Where your articles are live</p></div></div>{published.length ? <div className="pulse-list">{Object.entries(published.reduce<Record<string, number>>((acc, item) => { acc[item.platformId] = (acc[item.platformId] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, count]) => <div className="pulse-row" key={id}><span className="platform-dot" style={{ background: platformById[id]?.color }} /><span>{platformById[id]?.name || id}</span><div className="pulse-track"><div style={{ width: `${Math.max(15, count / published.length * 100)}%`, background: platformById[id]?.color }} /></div><strong>{count}</strong></div>)}</div> : <div className="pulse-empty"><Globe2 size={27} /><strong>No posts live yet</strong><p>Your distribution breakdown appears as soon as you publish.</p></div>}<div className="pulse-foot"><span>20 free destinations</span><button onClick={() => nav("platforms")}>Explore platforms <ArrowRight size={15} /></button></div></section></div>
+            <div className="callout"><div className="callout-icon"><KeyRound size={19} /></div><div><strong>Connect once per browser session</strong><p>API credentials are kept in session storage and sent only when you publish or refresh DEV views. Articles and results are saved to your private workspace.</p></div><button onClick={() => nav("platforms")}>Manage connections <ArrowRight size={16} /></button></div>
+          </>}
+
+          {!loading && section === "compose" && <>
+            <div className="page-heading compact"><div><span className="eyebrow">CONTENT STUDIO</span><h1>Write once. Publish everywhere.</h1><p>Draft your story, add media and keywords, then choose destinations.</p></div><button className="button-outline" onClick={newArticle}><Plus size={17} /> New draft</button></div>
+            <div className="editor-layout"><aside className="draft-sidebar"><div className="draft-sidebar-head"><strong>Article library</strong><span>{data.articles.length}</span></div><button className={`draft-item ${!draft.id ? "selected" : ""}`} onClick={newArticle}><span className="draft-icon"><Plus size={17} /></span><span><strong>Untitled draft</strong><small>Start something new</small></span></button>{data.articles.map((article) => <button className={`draft-item ${draft.id === article.id ? "selected" : ""}`} key={article.id} onClick={() => edit(article)}><span className="draft-icon"><FileText size={17} /></span><span><strong>{article.title}</strong><small>{shortDate(article.updatedAt)}</small></span></button>)}</aside><div className="editor-main"><div className="editor-toolbar"><span className="edit-status"><span /> {draft.id ? "Saved draft" : "New draft"}</span><div><button className="icon-text" onClick={downloadMarkdown} disabled={!draft.title}><Download size={16} /> Export</button>{draft.id && <button className="icon-text danger" onClick={deleteArticle} disabled={busy}><Trash2 size={16} /> Delete</button>}<button className="button-primary small" onClick={saveClick} disabled={busy}><Check size={16} /> Save article</button></div></div><div className="editor-fields"><label className="field-label">ARTICLE TITLE</label><input className="title-input" placeholder="Give your article a compelling title…" value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} maxLength={220} /><label className="field-label">SHORT DESCRIPTION</label><textarea className="excerpt-input" rows={2} placeholder="A quick summary for readers and search previews" value={draft.excerpt} onChange={(event) => setDraft({ ...draft, excerpt: event.target.value })} maxLength={500} /><div className="editor-divider" /><div className="body-heading"><label className="field-label">ARTICLE BODY</label><span>Markdown supported</span></div><textarea className="body-input" placeholder={`Start writing your story…\n\n## Add a section heading\n\nUse **bold**, *italics*, links, and lists.`} value={draft.body} onChange={(event) => setDraft({ ...draft, body: event.target.value })} /><div className="word-count">{draft.body.trim() ? draft.body.trim().split(/\s+/).length : 0} words</div></div><div className="editor-extra"><div className="extra-heading"><strong>Details & media</strong><span>Optional, but recommended</span></div><div className="form-grid"><label><span><ImageIcon size={15} /> Cover image URL</span><input type="url" placeholder="https://example.com/image.jpg" value={draft.coverUrl} onChange={(event) => setDraft({ ...draft, coverUrl: event.target.value })} /></label><label><span><Video size={15} /> Video URL</span><input type="url" placeholder="https://example.com/video" value={draft.videoUrl} onChange={(event) => setDraft({ ...draft, videoUrl: event.target.value })} /></label><label><span><Link2 size={15} /> Canonical URL</span><input type="url" placeholder="https://your-site.com/original-article" value={draft.canonicalUrl} onChange={(event) => setDraft({ ...draft, canonicalUrl: event.target.value })} /></label><label><span><Settings2 size={15} /> Keywords / tags</span><input placeholder="writing, design, technology" value={draft.keywords.join(", ")} onChange={(event) => setDraft({ ...draft, keywords: event.target.value.split(",").map((value) => value.trim()) })} /></label></div></div><div className="publish-box"><div className="publish-heading"><div><strong>Choose destinations</strong><span>{selected.length} selected · 3 direct API connections available</span></div><button onClick={() => nav("platforms")}>View all 20 <ArrowUpRight size={15} /></button></div><div className="target-grid">{platforms.map((platform) => <label key={platform.id} className={`target-chip ${selected.includes(platform.id) ? "checked" : ""}`}><input type="checkbox" checked={selected.includes(platform.id)} onChange={() => setSelected((current) => current.includes(platform.id) ? current.filter((id) => id !== platform.id) : [...current, platform.id])} /><span className="target-avatar" style={{ background: platform.color }}>{platform.name[0]}</span><span>{platform.name}</span><small>{platform.method === "api" ? "API" : "Guided"}</small></label>)}</div><div className="publish-footer"><p>Publishing happens when you press the button. Guided destinations need a final step in their editor.</p><button className="button-primary" onClick={publishSelected} disabled={busy}><Send size={17} /> {busy ? "Working…" : `Publish to ${selected.length || "selected"} destination${selected.length === 1 ? "" : "s"}`}</button></div></div></div></div>
+          </>}
+
+          {!loading && section === "platforms" && <>
+            <div className="page-heading"><div><span className="eyebrow">DESTINATION DIRECTORY</span><h1>20 places to publish.</h1><p>Curated free options. Three support direct publishing here; the rest have a guided workflow.</p></div><div className="directory-number">20 <span>platforms</span></div></div><div className="directory-toolbar"><div className="search-box"><Search size={18} /><input placeholder="Search platforms…" value={search} onChange={(event) => setSearch(event.target.value)} /></div><div className="filter-wrap"><select value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="Filter by category">{categories.map((category) => <option key={category}>{category}</option>)}</select><ChevronDown size={17} /></div></div><div className="platform-grid">{filteredPlatforms.map((platform) => { const active = platform.method === "api" && sessionTokens.includes(platform.id); return <article className="platform-card" key={platform.id}><div className="platform-card-top"><span className="platform-logo" style={{ background: platform.color }}>{platform.name.slice(0, 1)}</span><span className={`method-badge ${platform.method === "api" ? "api" : "guided"}`}>{platform.method === "api" ? "DIRECT API" : "GUIDED"}</span></div><h2>{platform.name}</h2><span className="platform-category">{platform.category}</span><p>{platform.note}</p><div className="platform-card-foot"><button className="button-outline small" onClick={() => platform.method === "api" ? openSettings(platform) : (setDraft({ ...blank }), setSelected([platform.id]), nav("compose"))}>{platform.method === "api" ? active ? "Connected" : "Connect" : "Prepare post"} <ArrowRight size={15} /></button><a href={platform.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${platform.name}`}><ExternalLink size={17} /></a></div></article>; })}</div><p className="directory-note">“20” is a curated directory, not a ranking by traffic. Free plans, publishing limits, and editorial rules may change.</p>
+          </>}
+
+          {!loading && section === "activity" && <>
+            <div className="page-heading"><div><span className="eyebrow">PUBLICATION LOG</span><h1>Track every publication.</h1><p>Real URLs and recorded views, with live DEV view refresh.</p></div><button className="button-outline" onClick={refreshDev} disabled={busy}><RefreshCw size={17} className={busy ? "spin" : ""} /> Refresh DEV views</button></div><div className="activity-summary"><span><strong>{published.length}</strong> published placements</span><span><strong>{views.toLocaleString()}</strong> recorded views</span><span><strong>{data.deliveries.filter((item) => item.state === "failed").length}</strong> failed attempts</span></div><section className="panel activity-panel"><div className="panel-head"><div><h2>Publication history</h2><p>Click a live URL to inspect the published article.</p></div></div>{data.deliveries.length ? <div className="table-wrap"><table><thead><tr><th>Article</th><th>Destination</th><th>Status</th><th>Views</th><th>Updated</th><th></th></tr></thead><tbody>{data.deliveries.map((delivery) => <tr key={delivery.id}><td><strong>{data.articles.find((article) => article.id === delivery.articleId)?.title || "Deleted article"}</strong>{delivery.error && <small className="delivery-error">{delivery.error}</small>}</td><td><span className="table-platform"><span className="platform-dot" style={{ background: platformById[delivery.platformId]?.color }} />{platformById[delivery.platformId]?.name || delivery.platformId}</span></td><td><span className={`pill ${delivery.state === "published" ? "pill-success" : delivery.state === "failed" ? "pill-error" : "pill-draft"}`}>{delivery.state}</span></td><td>{delivery.state === "published" ? <button className="views-button" onClick={() => { setViewsDelivery(delivery); setViewsInput(String(delivery.views)); }}>{delivery.views.toLocaleString()} <PenLine size={13} /></button> : "—"}</td><td>{shortDate(delivery.updatedAt)}</td><td>{delivery.url && <a className="row-link" href={delivery.url} target="_blank" rel="noopener noreferrer" aria-label="Open published article"><ArrowUpRight size={18} /></a>}</td></tr>)}</tbody></table></div> : <div className="empty-panel"><span><Activity size={23} /></span><strong>Nothing published yet</strong><p>Once an article goes live, it appears here with its URL and status.</p><button className="button-primary small" onClick={() => nav("compose")}>Open content studio</button></div>}</section><div className="activity-footnote"><Eye size={16} /> DEV views are fetched from DEV when you refresh. For other platforms, enter the count shown in their own analytics.</div>
+          </>}
+        </div>
+      </main>
+
+      {message && <div className="toast" role="status"><span>{message}</span><button onClick={() => setMessage("")} aria-label="Dismiss"><X size={16} /></button></div>}
+
+      {platformModal && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setPlatformModal(null); }}><div className="modal" role="dialog" aria-modal="true" aria-label={`Connect ${platformModal.name}`}><button className="modal-close" onClick={() => setPlatformModal(null)} aria-label="Close"><X size={20} /></button><span className="modal-icon" style={{ background: platformModal.color }}>{platformModal.name[0]}</span><h2>Connect {platformModal.name}</h2><p>{platformModal.note}</p><label><span>{platformModal.id === "dev" ? "DEV API key" : "OAuth access token"}</span><input type="password" autoComplete="off" placeholder="Paste your token" value={configToken} onChange={(event) => setConfigToken(event.target.value)} /></label>{platformModal.id !== "dev" && <label><span>{platformModal.id === "blogger" ? "Blogger blog ID" : "WordPress.com site ID or domain"}</span><input placeholder={platformModal.id === "blogger" ? "1234567890123456789" : "yourblog.wordpress.com"} value={configSiteId} onChange={(event) => setConfigSiteId(event.target.value)} /></label>}<div className="credential-note"><KeyRound size={17} /><span>Tokens stay in this browser session and are never saved to the article database. You will re-enter them after the session ends.</span></div><div className="modal-actions"><a href={platformModal.docs} target="_blank" rel="noopener noreferrer">Setup docs <ExternalLink size={14} /></a><button className="button-primary" onClick={saveSettings} disabled={busy}>Save connection</button></div></div></div>}
+
+      {currentManual && <div className="modal-backdrop"><div className="modal manual-modal" role="dialog" aria-modal="true" aria-label={`Publish to ${currentManual.name}`}><button className="modal-close" onClick={() => setManualQueue([])} aria-label="Close"><X size={20} /></button><div className="step-count">GUIDED PUBLISHING · {manualQueue.length} REMAINING</div><span className="modal-icon" style={{ background: currentManual.color }}>{currentManual.name[0]}</span><h2>Publish on {currentManual.name}</h2><p>Copy your article, open the platform editor, review formatting and policies, then paste the live URL here.</p><div className="manual-actions"><button className="button-outline" onClick={() => copyText(draft.title)}><Copy size={16} /> Copy title</button><button className="button-outline" onClick={() => copyText(editorCopy(draft))}><Copy size={16} /> Copy article</button><a className="button-primary" href={currentManual.editorUrl} target="_blank" rel="noopener noreferrer">Open editor <ExternalLink size={16} /></a></div><label><span>Published article URL</span><input type="url" placeholder="https://…" value={manualUrl} onChange={(event) => setManualUrl(event.target.value)} /></label><div className="modal-actions"><button className="text-button" onClick={() => { setManualQueue((queue) => queue.slice(1)); setManualUrl(""); }}>Skip this destination</button><button className="button-primary" onClick={recordManual} disabled={busy || !manualUrl}>Record publication <Check size={16} /></button></div></div></div>}
+
+      {viewsDelivery && <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setViewsDelivery(null); }}><div className="modal narrow-modal" role="dialog" aria-modal="true" aria-label="Update views"><button className="modal-close" onClick={() => setViewsDelivery(null)} aria-label="Close"><X size={20} /></button><span className="modal-icon view-icon"><Eye size={23} /></span><h2>Update view count</h2><p>Enter the number reported in {platformById[viewsDelivery.platformId]?.name || "the platform"}&apos;s analytics.</p><label><span>Views</span><input type="number" min="0" value={viewsInput} onChange={(event) => setViewsInput(event.target.value)} /></label><div className="modal-actions"><button className="button-primary" onClick={saveViews} disabled={busy}>Save views</button></div></div></div>}
+    </div>
+  );
+}

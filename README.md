@@ -38,4 +38,3 @@ Apply the generated migration to the local D1 database as described in the [Site
 ## Safety and limits
 
 Publishing is triggered by a button press. The server sends article content only to the chosen platform. The app does not scrape passwords, automate sign-in pages, or claim API support where the destination has no supported integration. Cover and video media must already be hosted at HTTPS URLs; this version does not upload media files. WordPress.com and Blogger do not expose views through this app, so enter those counts manually. A direct publish that fails after reaching a platform may need manual reconciliation before retrying to avoid duplicates.
-
