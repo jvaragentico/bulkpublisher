@@ -13,7 +13,7 @@ npm start
 Open http://127.0.0.1:8787. Initial local login: `admin` / `admin`. Change `.dev.vars` before sharing access.
 
 - DOCX, ODT, Markdown/text import; photo uploads through your Cloudinary unsigned preset.
-- Six article APIs: DEV, WordPress.com, Blogger, Tumblr, HackMD and Telegraph. Fourteen destinations use guided editor publishing; see each Requirements panel.
+- Eight automatic article destination slots: DEV, WordPress.com, Blogger, Tumblr and four separate Telegraph accounts. Twelve slots require manual publication in the platform editor; see each Requirements panel. The article list covers 17 services.
 - Ten webpage deployment adapters: GitHub, GitLab, Codeberg, Netlify, Vercel, Neocities, Cloudflare Pages, Firebase Hosting, Render Static Sites and Appwrite Sites. Configure dedicated sites and required credentials first.
 - Real live Telegraph test links are in [test-results.json](public/test-results.json). Other providers have mocked contract tests and still need live account-level verification.
 - Tokens entered in the GUI stay in browser session storage. Hosted workspace secrets use the Sites environment store.

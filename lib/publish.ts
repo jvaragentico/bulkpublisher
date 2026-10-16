@@ -1,3 +1,4 @@
+import { isTelegraphAccount } from "./telegraph-accounts.ts";
 export type Post = { title: string; excerpt: string; body: string; keywords: string; coverUrl: string; videoUrl: string; canonicalUrl: string };
 export type ContentNode = string | { tag: string; attrs?: Record<string, string>; children?: ContentNode[] };
 export class UnknownPublishError extends Error {}
@@ -60,12 +61,12 @@ export async function remoteJson(url: string, headers: Record<string, string>, b
   return data;
 }
 export function validatePublish(id: string, post: Post, token: string, siteId: string) {
-  if (!["dev", "wordpress", "blogger", "telegraph", "hackmd", "tumblr"].includes(id)) throw new Error("Use this destination's guided editor workflow.");
+  if (!["dev", "wordpress", "blogger", "tumblr"].includes(id) && !isTelegraphAccount(id)) throw new Error("Use this destination's guided editor workflow.");
   if (!token.trim()) throw new Error("Add an access token or API key in Platforms.");
   if (["wordpress", "blogger", "tumblr"].includes(id) && !siteId.trim()) throw new Error("Add the target site or blog ID.");
   if (!post.body.trim()) throw new Error("Add article text first.");
   if (id === "dev" && /^\s*---\s*\n/.test(post.body)) throw new Error("Remove YAML front matter; use the title, tags and media fields.");
-  if (id === "telegraph" && new TextEncoder().encode(JSON.stringify(postNodes(post))).length > 64000) throw new Error("Telegraph content exceeds 64 KB. Shorten the article.");
+  if (isTelegraphAccount(id) && new TextEncoder().encode(JSON.stringify(postNodes(post))).length > 64000) throw new Error("Telegraph content exceeds 64 KB. Shorten the article.");
 }
 export async function publish(id: string, post: Post, token: string, siteId: string) {
   validatePublish(id, post, token, siteId);
@@ -83,15 +84,9 @@ export async function publish(id: string, post: Post, token: string, siteId: str
     const data = await remoteJson("https://www.googleapis.com/blogger/v3/blogs/" + encodeURIComponent(siteId) + "/posts", auth, { kind: "blogger#post", title: post.title, content: postHtml(post), labels: tags });
     return { url: publicUrl(data.url), views: 0 };
   }
-  if (id === "telegraph") {
+  if (isTelegraphAccount(id)) {
     const data = await remoteJson("https://api.telegra.ph/createPage", {}, { access_token: token, title: post.title, author_name: "Bulk Publisher Studio", content: postNodes(post), return_content: true });
     return { url: publicUrl(data.result?.url), views: Number(data.result?.views) || 0 };
-  }
-  if (id === "hackmd") {
-    const data = await remoteJson("https://api.hackmd.io/v1/notes", auth, { title: post.title, description: post.excerpt, tags, content: "# " + post.title + "\n\n" + postMarkdown(post), readPermission: "guest", writePermission: "owner" });
-    const note = data.note || data;
-    if (note.readPermission && note.readPermission !== "guest") throw new UnknownPublishError("HackMD created a private note. Inspect it before retrying.");
-    return { url: publicUrl(note.publishLink), views: 0 };
   }
   const content: any[] = [{ type: "text", subtype: "heading1", text: post.title }];
   if (post.coverUrl) content.push({ type: "image", media: [{ url: post.coverUrl }] });

@@ -4,6 +4,7 @@ import { articles, deliveries } from "@/db/schema";
 import { db, fail, json, readJson, userId } from "@/lib/api";
 import { platformById } from "@/lib/catalog";
 import { publish, validatePublish, UnknownPublishError } from "@/lib/publish";
+import { resolvePublishingToken } from "@/lib/telegraph-accounts";
 
 export async function POST(request: Request) {
   const user = await userId(request);
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
     platformId = String(input.platformId ?? "");
     const platform = platformById[platformId];
     if (!platform || platform.method !== "api") return fail("This destination uses guided publishing.");
-    const token = String(input.token || (platformId === "telegraph" ? env.TELEGRAPH_TOKEN || "" : "")).trim();
+    const token = resolvePublishingToken(platformId, input.token, env.TELEGRAPH_TOKEN);
     const siteId = String(input.siteId ?? "").trim();
     const database = db();
     const post = await database.select().from(articles).where(and(eq(articles.id, articleId), eq(articles.userId, user))).limit(1);

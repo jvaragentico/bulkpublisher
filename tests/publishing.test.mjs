@@ -9,14 +9,13 @@ test.afterEach(() => { globalThis.fetch = realFetch; });
 const response = data => Response.json(data);
 test("unsafe HTML is escaped while HTTPS photos and formatting are preserved", () => { const html = markdownToHtml('<script>alert(1)</script>\n\n![x](https://example.com/a.jpg)\n\n[x](javascript:alert(1))'); assert.ok(!html.includes("<script>")); assert.ok(html.includes('<img src="https://example.com/a.jpg">')); assert.ok(!html.includes('href="javascript:')); });
 test("publishing validates credentials and DEV front matter before network writes", () => { assert.throws(() => validatePublish("dev", post, "", ""), /token/); assert.throws(() => validatePublish("wordpress", post, "token", ""), /site/); assert.throws(() => validatePublish("dev", { ...post, body: "---\ntitle: Override\n---" }, "token", ""), /front matter/); });
-for (const id of ["dev", "wordpress", "blogger", "telegraph", "hackmd", "tumblr"]) test(`${id} sends a real publishing request and extracts the public URL`, async () => {
+for (const id of ["dev", "wordpress", "blogger", "telegraph", "telegraph-2", "telegraph-3", "telegraph-4", "tumblr"]) test(`${id} constructs the publishing request and extracts the mocked public URL`, async () => {
   const requests = []; globalThis.fetch = async (url, init) => {
     requests.push({ url: String(url), init });
     if (id === "dev") { const data = JSON.parse(init.body).article; assert.equal(data.published, true); assert.equal(data.tags.length, 4); assert.equal(data.tags[0], "webdesign"); return response({ url: "https://dev.to/test/post" }); }
     if (id === "wordpress") { assert.ok(JSON.parse(init.body).content.includes("<img")); return response({ URL: "https://test.wordpress.com/post" }); }
     if (id === "blogger") return response({ url: "https://test.blogspot.com/post" });
-    if (id === "telegraph") { assert.equal(JSON.parse(init.body).access_token, "token"); return response({ ok: true, result: { url: "https://telegra.ph/Test-10-16" } }); }
-    if (id === "hackmd") { assert.equal(JSON.parse(init.body).readPermission, "guest"); return response({ publishLink: "https://hackmd.io/@test/article", readPermission: "guest" }); }
+    if (id === "telegraph" || id.startsWith("telegraph-")) { assert.equal(JSON.parse(init.body).access_token, "token"); return response({ ok: true, result: { url: "https://telegra.ph/Test-10-16" } }); }
     return response(init.method === "POST" ? { response: { id: "123" } } : { response: { posts: [{ post_url: "https://test.tumblr.com/post/123" }] } });
   };
   const result = await publish(id, post, "token", "test"); assert.ok(result.url.startsWith("https://")); assert.ok(requests.some(r => r.init.method === "POST"));

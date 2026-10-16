@@ -1,15 +1,18 @@
 import { env } from "cloudflare:workers";
 import { fail, json, readJson, userId } from "@/lib/api";
 import { remoteJson } from "@/lib/publish";
+import { isTelegraphAccount, resolvePublishingToken } from "@/lib/telegraph-accounts";
+import { platformById } from "@/lib/catalog";
 export async function POST(request: Request) {
   if (!await userId(request)) return fail("Sign in first.", 401);
   try {
-    const input = await readJson(request); const id = String(input.platformId); const site = encodeURIComponent(String(input.siteId || ""));
-    if (input.action === "create" && id === "telegraph") {
-      const data = await remoteJson("https://api.telegra.ph/createAccount", {}, { short_name: "BulkPublisher", author_name: "Bulk Publisher Studio" });
+    const input = await readJson(request); const id = String(input.platformId);
+    if (!platformById[id]) return fail("Unknown destination.");
+    if (input.action === "create" && isTelegraphAccount(id)) {
+      const data = await remoteJson("https://api.telegra.ph/createAccount", {}, { short_name: `BulkPublisher-${id === "telegraph" ? "1" : id.split("-")[1]}`, author_name: "Bulk Publisher Studio" });
       return json({ token: data.result.access_token });
     }
-    const token = String(input.token || (id === "telegraph" ? env.TELEGRAPH_TOKEN || "" : ""));
+    const token = resolvePublishingToken(id, input.token, env.TELEGRAPH_TOKEN);
     if (!token) return fail("Add a token before testing.");
     const bearer = { Authorization: `Bearer ${token}` };
     if (id === "dev") await remoteJson("https://dev.to/api/users/me", { "api-key": token });
@@ -22,8 +25,7 @@ export async function POST(request: Request) {
       const data = await remoteJson("https://www.googleapis.com/blogger/v3/users/self/blogs", bearer);
       if (!data.items?.some((blog: any) => String(blog.id) === String(input.siteId || ""))) throw new Error("Token accepted, but this blog is not in the account's blog list.");
     }
-    else if (id === "hackmd") await remoteJson("https://api.hackmd.io/v1/me", bearer);
-    else if (id === "telegraph") await remoteJson("https://api.telegra.ph/getAccountInfo", {}, { access_token: token });
+    else if (isTelegraphAccount(id)) await remoteJson("https://api.telegra.ph/getAccountInfo", {}, { access_token: token });
     else if (id === "tumblr") {
       const result = await remoteJson("https://api.tumblr.com/v2/user/info", bearer);
       const wanted = String(input.siteId || "").replace(/\.tumblr\.com$/, "");

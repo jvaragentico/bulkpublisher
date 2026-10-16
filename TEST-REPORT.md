@@ -2,7 +2,7 @@
 
 ## Passed
 
-- 30 automated tests: DOCX/ODT imports, upload validation, mocked photo upload, HTML escaping, six article API request formats, ten host API request formats, uncertain publishing outcomes, credential redaction and exact-snapshot public verification.
+- 35 automated tests: DOCX/ODT imports, upload validation, mocked photo upload, HTML escaping, eight article destination request formats, ten host API request formats, uncertain publishing outcomes, credential redaction and exact-snapshot public verification.
 - TypeScript type check: `node node_modules/typescript/bin/tsc --noEmit --pretty false`.
 - Production build and documented local setup: `npm run setup:local`. All three database migrations apply to a fresh database; subsequent setup reports no pending migrations.
 - Local HTTP end-to-end check: unauthenticated access, wrong password, valid admin login, CSRF rejection, invalid article IDs, save/read/delete, missing publishing credentials, unsafe editor URL rejection, generated HTML ZIP, manual publication records and session revocation after logout.
@@ -23,7 +23,7 @@
 
 ## Remaining verification limits
 
-Only Telegraph was tested with real public publishing. The other five article API adapters, all ten webpage host adapters and Cloudinary uploads still need live account-level tests with valid user credentials. Their mocked request tests verify local behavior and request construction, not provider acceptance, account permissions, plan eligibility or quota.
+Only Telegraph was tested with real public publishing. The other four article API providers and additional Telegraph account credentials, all ten webpage host adapters and Cloudinary uploads still need live account-level tests with valid user credentials. Their mocked request tests verify local behavior and request construction, not provider acceptance, account permissions, plan eligibility or quota.
 
 Fourteen article destinations intentionally use a guided editor workflow. They are not automatic API connectors. Browser passwords alone cannot enable automatic publication there. Platform API availability and free tiers may change.
 

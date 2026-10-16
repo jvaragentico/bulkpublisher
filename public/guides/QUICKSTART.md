@@ -79,13 +79,13 @@ Save as `/etc/systemd/system/bulkpublisher.service`, then run `sudo systemctl da
 
 ## Which article platforms publish automatically?
 
-Six adapters: **DEV, WordPress.com, Blogger, Tumblr, HackMD and Telegra.ph**.
+Eight automatic API destination slots: **DEV, WordPress.com, Blogger, Tumblr and four separate Telegra.ph accounts**. There are 20 article slots across 17 services.
 
-Fourteen use their own editor: Medium, Hashnode, Substack, LinkedIn Articles, beehiiv, Wix, Square Online/Weebly, Vocal, LiveJournal, Bear Blog, Quora Spaces, GitHub Pages Markdown, GitLab Pages Markdown and Notion Sites. The app prepares the content and records your published URL. Entering a password will not turn these guided workflows into API publishing. GitHub/GitLab also have automatic HTML deployment in **Page hosts**.
+Twelve use their own editor: Medium, Hashnode, Substack, LinkedIn Articles, beehiiv, Wix, Square Online/Weebly, Vocal, LiveJournal, Bear Blog, Quora Spaces and Notion Sites. The app prepares the content and records your published URL. Entering a password will not turn these guided workflows into API publishing. GitHub/GitLab also have automatic HTML deployment in **Page hosts**.
 
-Medium does not issue new API tokens. Hashnode and beehiiv publishing APIs require paid access. The app keeps their free editor workflows. HubPages was removed because it stopped accepting new content; HackMD replaced it. Vocal requires account setup, Stripe connection and editorial approval.
+Medium does not issue new API tokens. Hashnode and beehiiv publishing APIs require paid access. The app keeps their free editor workflows. HubPages is no longer offered. HackMD and the GitHub/GitLab article entries were replaced by three additional Telegra.ph account slots. Vocal requires account setup, Stripe connection and editorial approval.
 
-The hosted app has a workspace Telegraph account configured. For a local copy, open Platforms → Telegra.ph → Create a free Telegraph account → Save connection. Keep the generated token privately if you want to reuse that account. You can optionally add `TELEGRAPH_TOKEN="your-token"` to `.dev.vars` and restart to use it as the local workspace account.
+The hosted app has a workspace Telegraph account configured. For a local copy, open Platforms → Telegra.ph — Account 1 → Connect → Create a free Telegraph account → Save connection. Repeat separately for Accounts 2, 3 and 4 with different account tokens. Keep the generated token privately if you want to reuse that account. You can optionally add `TELEGRAPH_TOKEN="your-token"` to `.dev.vars` and restart to use it as the local workspace account.
 
 API tokens entered in the GUI stay in browser session storage. They are not written to the article database. OAuth refresh is not automatic: replace expired Google/Tumblr/WordPress tokens. This is an interactive bulk publisher; it does not run an unattended schedule after the browser closes.
 

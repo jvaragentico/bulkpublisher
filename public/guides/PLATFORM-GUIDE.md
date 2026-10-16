@@ -4,34 +4,315 @@ Start with [the local/VPS setup guide](QUICKSTART.md). Your dashboard login is a
 
 ## Two kinds of article destinations
 
-**Automatic API** means the app can send the article after you provide a valid platform-issued token and the listed IDs. **Guided editor** means the app prepares the article and opens that platform's editor; you sign in and press Publish there, then paste the resulting URL into the dashboard.
+**Automatic API** means the app can send the article after you provide a valid platform-issued token and the listed IDs. **Guided editor** means a manual final step: you copy the article, sign in on the platform, paste/format it and press Publish there yourself, then record the public URL here.
+
+There are four separate Telegra.ph account slots: Account 1 plus the three replacements for HackMD and the former GitHub/GitLab article entries. This is one service with four account connections, not four different websites. Only Account 1 may use the workspace token; create or provide a separate token for each other slot.
 
 Do not send account passwords to us or paste them into token fields. Sign in directly on each platform. Paste only API keys/access tokens issued for your own account.
 
-## The 20 article destinations
+## The 20 article destination slots (17 services)
 
 | Platform | What you need to provide or set up | Publishing mode / limits |
 | --- | --- | --- |
-| [Medium](https://help.medium.com/hc/en-us/articles/213480228-API-Importing) | Free Medium account; sign in in the platform editor; Profile or publication editor URL; Publication contributor rights if publishing to a publication | **Guided editor**. New API tokens are unavailable. Final publishing uses Medium's editor. |
-| [WordPress.com](https://developer.wordpress.com/docs/api/getting-started/) | WordPress.com site on a free plan; OAuth bearer token with posting permission; Site ID or domain; author/editor rights | **Automatic API**. A WordPress.org application password is not a WordPress.com OAuth token. |
-| [Blogger](https://developers.google.com/blogger/docs/3.0/reference/posts/insert) | Google account and an existing Blogger blog; OAuth access token with https://www.googleapis.com/auth/blogger scope; Blog ID and author permissions | **Automatic API**. Google access tokens expire. Refresh outside this app and replace the token. |
-| [DEV Community](https://developers.forem.com/api/v0#tag/articles/operation/createArticle) | DEV account; API key from Settings → Extensions | **Automatic API**. Four normalized tags maximum. Review DEV community relevance; YAML front matter is rejected. |
-| [Hashnode](https://hashnode.com) | Free Hashnode account and publication; Publication dashboard URL | **Guided editor**. API access requires Pro as of May 2026. The free workflow uses its editor. |
-| [Tumblr](https://www.tumblr.com/docs/en/api/v2) | Tumblr blog; OAuth2 bearer token with basic and write scopes; Blog name or hostname | **Automatic API**. Text, photos and tags supported. Markdown punctuation in text blocks may need review. Daily platform limits apply. |
-| [Substack](https://substack.com) | Substack account and publication; Publication dashboard URL; Choose web-only or email distribution in Substack | **Guided editor**. Final publication uses the editor. Check email delivery before submitting. |
-| [LinkedIn Articles](https://www.linkedin.com) | LinkedIn profile or Page with author access; Browser login to the Articles editor | **Guided editor**. Native long-form Articles are guided. The Posts API link preview is a different format. |
-| [beehiiv](https://www.beehiiv.com) | Free beehiiv publication; Publication dashboard URL | **Guided editor**. Create Post API is paid-only; free publishing uses the editor. |
-| [Wix Blog](https://www.wix.com) | Published free Wix site; Wix Blog installed and editor access; Site dashboard URL | **Guided editor**. This app provides guided publishing. Wix's API is not integrated here. |
-| [Square Online / Weebly](https://squareup.com/us/en/online-store) | Square Online free site with Stories, or existing Weebly blog; Site dashboard URL and editor access | **Guided editor**. Uses the platform editor. New users should choose Square Online. |
-| [HackMD](https://hackmd.io/@docs/hackmd-api) | HackMD account; Personal API token from Settings → API | **Automatic API**. Notes are publicly readable by link. Discovery is not guaranteed; 400 API calls/month on the free plan. |
-| [Vocal Media](https://vocal.media) | Vocal account and connected Stripe account in Wallet; Title, subtitle, featured media, story and community; Usually at least 600 words (100 for poems) | **Guided editor**. Moderation is required. Record a URL only after the story is public. |
-| [LiveJournal](https://www.livejournal.com) | LiveJournal account and journal/community posting rights; Editor URL | **Guided editor**. Uses the editor. The legacy XML-RPC API is not integrated. |
-| [Bear Blog](https://bearblog.dev) | Free Bear Blog account; Blog dashboard URL; Public external image URLs for photos | **Guided editor**. Built-in image uploads require an upgrade; external photo URLs work. |
-| [Telegra.ph](https://telegra.ph/api) | Workspace Telegraph token, your own token, or create a free account here; Public HTTPS image URLs; article content under 64 KB | **Automatic API**. Pages are public. Keep a backup of your own token to retain editing access. |
-| [Quora Spaces](https://www.quora.com) | Quora account and Space URL; Contributor, moderator or admin posting rights | **Guided editor**. Followers may only submit for approval. Final publishing uses Quora. |
-| [GitHub Pages](https://pages.github.com) | Free public repository; Pages enabled, build workflow, branch and content path; Repository access; use Page hosts for automatic HTML deployment | **Guided editor**. This article workflow exports Markdown for your existing site. |
-| [GitLab Pages](https://docs.gitlab.com/user/project/pages/) | GitLab project with working Pages CI; Branch, content path and Pages URL; Repository access; use Page hosts for automatic HTML deployment | **Guided editor**. This article workflow exports Markdown for your existing site. |
-| [Notion Sites](https://www.notion.com) | Free Notion workspace; Page editing permission; Publish the page to web using Share → Publish | **Guided editor**. Final publishing is manual. A workspace URL alone does not make a page public. |
+| [Medium](https://help.medium.com/hc/en-us/articles/213480228-API-Importing) | No token. Optional personal/publication editor URL. | **Guided editor — manual final step**. Guided editor = you do the final publishing in Medium. No API key or account password belongs in this dashboard. |
+| [WordPress.com](https://developer.wordpress.com/docs/api/getting-started/) | WordPress.com OAuth access_token + site ID or site domain. | **Automatic API**. Developer setup is required to obtain the OAuth token. A Client ID, Client Secret, WordPress password or application password is not the access_token required by this connector. |
+| [Blogger](https://developers.google.com/blogger/docs/3.0/reference/posts/insert) | Google OAuth access token with Blogger scope + numeric blog ID. | **Automatic API**. A Google API key cannot publish posts. Access tokens are short lived; replace them when they expire. The app does not refresh Google tokens automatically. |
+| [DEV Community](https://developers.forem.com/api/v0#tag/articles/operation/createArticle) | DEV API key only. No site ID. | **Automatic API**. Up to four normalized tags. Publish relevant content and follow DEV's rules. The key is sensitive. |
+| [Hashnode](https://hashnode.com) | No token. Optional publication dashboard URL. | **Guided editor — manual final step**. The free workflow uses Hashnode's browser editor. Its paid API access is not used by this app. |
+| [Tumblr](https://www.tumblr.com/docs/en/api/v2) | OAuth2 access_token with basic + write scopes, plus blog name/hostname. | **Automatic API**. OAuth developer setup is required. Text, public image URLs and tags are supported; review Markdown punctuation and platform limits. |
+| [Substack](https://substack.com) | No token. Optional publication dashboard URL. | **Guided editor — manual final step**. You must press the final publish/send button in Substack. Check email delivery settings before publishing. |
+| [LinkedIn Articles](https://www.linkedin.com) | No token. A LinkedIn profile or Page with author access. | **Guided editor — manual final step**. Native long-form Articles require manual completion here. No LinkedIn password or token is requested by this destination. |
+| [beehiiv](https://www.beehiiv.com) | No token. Optional publication dashboard URL. | **Guided editor — manual final step**. Free-plan publishing uses the browser editor. The paid Create Post API is not connected. |
+| [Wix Blog](https://www.wix.com) | No token. Wix site editor/dashboard URL. | **Guided editor — manual final step**. The app does not automate Wix's API. The free Wix-branded site and its editor are used. |
+| [Square Online / Weebly](https://squareup.com/us/en/online-store) | No token. Your Square Online/Weebly editor URL. | **Guided editor — manual final step**. Manual editor workflow. Use an account/site that actually provides Stories or Blog editing. |
+| [Telegra.ph — Account 2](https://telegra.ph/api) | This slot's own Telegraph access token. No username/password or site ID. | **Automatic API**. This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit. |
+| [Vocal Media](https://vocal.media) | No API token. Vocal account, Wallet/Stripe setup and story details. | **Guided editor — manual final step**. Submitting for moderation is not immediate publication. A private editor URL is not a live story URL. |
+| [LiveJournal](https://www.livejournal.com) | No token. Journal/community posting access and optional editor URL. | **Guided editor — manual final step**. Uses LiveJournal's own editor; its legacy XML-RPC API is not integrated. |
+| [Bear Blog](https://bearblog.dev) | No token. Bear Blog dashboard URL and public image URLs. | **Guided editor — manual final step**. Free workflow uses external images; Bear's built-in image uploads may require an upgrade. |
+| [Telegra.ph — Account 1](https://telegra.ph/api) | Workspace token, or a token saved for Account 1. No username/password or site ID. | **Automatic API**. This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit. |
+| [Quora Spaces](https://www.quora.com) | No token. Space URL and contributor/moderator/admin posting rights. | **Guided editor — manual final step**. Final publication takes place in Quora. Do not record a private draft or unapproved submission as published. |
+| [Telegra.ph — Account 3](https://telegra.ph/api) | This slot's own Telegraph access token. No username/password or site ID. | **Automatic API**. This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit. |
+| [Telegra.ph — Account 4](https://telegra.ph/api) | This slot's own Telegraph access token. No username/password or site ID. | **Automatic API**. This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit. |
+| [Notion Sites](https://www.notion.com) | No token. A page you can edit and permission to publish it. | **Guided editor — manual final step**. Public sharing must be completed in Notion. A workspace page address alone does not make a page public. |
+
+## Guided editor: exactly what you do
+
+Guided editor is **not automatic publishing**. You must finish on the destination website. The app does not log in or press its Publish button for you. No API token is needed for these editor destinations.
+
+1. In this dashboard, save the article in Compose, select a guided destination and press Publish.
+2. In the guided dialog click Copy title / Copy article, then Open editor.
+3. Sign in directly on that platform, create a post and paste the content. The copied article is Markdown: if that editor does not render Markdown, use its formatting toolbar and add images with its media tools.
+4. Review visibility, formatting and any email-send options. Press Publish / Submit **on that platform**. If approval is required, wait until the post is public.
+5. Copy the public article address. Return to the dashboard, paste it into Published article URL and click Record publication.
+
+Example: for Medium you still press Publish inside Medium. The dashboard records its link after you paste it back.
+
+## Setup steps for every article destination
+
+Menu labels can vary by account. Use the direct editor/settings links below where available. OAuth providers do not have a simple API-key button: WordPress.com and Tumblr require app authorization outside this dashboard.
+
+### Medium
+
+**What to enter here:** No token. Optional personal/publication editor URL.
+
+1. Sign in at medium.com, then open your profile menu → Write a story, or use medium.com/new-story.
+2. In this dashboard choose Medium in Compose and press Publish to open the guided dialog. Copy the title/article, then Open editor.
+3. Paste the content in Medium. Use Medium's toolbar for headings and images; review → Publish in Medium.
+4. Copy the public story address and paste it into Published article URL in this dashboard → Record publication.
+
+Guided editor = you do the final publishing in Medium. No API key or account password belongs in this dashboard.
+
+[Official platform / setup documentation](https://help.medium.com/hc/en-us/articles/213480228-API-Importing)
+
+### WordPress.com
+
+**What to enter here:** WordPress.com OAuth access_token + site ID or site domain.
+
+1. Sign in to WordPress.com and create/select the free site you control. You can enter its domain (for example, yoursite.wordpress.com), so finding a numeric ID is optional.
+2. Open developer.wordpress.com/apps/ → Create New Application. Register an app with a callback URL you control; keep Client Secret private.
+3. Complete WordPress.com's documented OAuth authorization flow for your site, then exchange the returned authorization code at https://public-api.wordpress.com/oauth2/token.
+4. Copy the response's access_token. In this dashboard: Platforms → WordPress.com → Connect → paste it in API key / OAuth access token; enter the site domain in WordPress.com site ID or domain.
+5. Press Test connection, then Save connection. This app accepts a token; it does not currently run the WordPress OAuth authorization flow for you.
+
+Developer setup is required to obtain the OAuth token. A Client ID, Client Secret, WordPress password or application password is not the access_token required by this connector.
+
+[Official platform / setup documentation](https://developer.wordpress.com/docs/api/getting-started/)
+
+### Blogger
+
+**What to enter here:** Google OAuth access token with Blogger scope + numeric blog ID.
+
+1. Sign in at blogger.com and create/select your blog. Copy the numeric blog ID from the address bar in its dashboard (the number following /blog/).
+2. Open developers.google.com/oauthplayground/. In Step 1 enter the scope https://www.googleapis.com/auth/blogger → Authorize APIs → sign in with the Google account that owns the blog and approve access.
+3. In Step 2 press Exchange authorization code for tokens. Copy Access token, not Refresh token.
+4. In this dashboard: Platforms → Blogger → Connect → paste Access token and the numeric Blogger blog ID → Test connection → Save connection.
+5. For your own Google OAuth app, enable Blogger API in Google Cloud Console → APIs & Services → Library; configure OAuth consent/client credentials and the Playground callback if using its gear menu → Use your own OAuth credentials.
+
+A Google API key cannot publish posts. Access tokens are short lived; replace them when they expire. The app does not refresh Google tokens automatically.
+
+[Official platform / setup documentation](https://developers.google.com/blogger/docs/3.0/reference/posts/insert)
+
+### DEV Community
+
+**What to enter here:** DEV API key only. No site ID.
+
+1. Sign in at dev.to → profile picture → Settings → Extensions (direct address: dev.to/settings/extensions).
+2. Find DEV Community API Keys. Enter a description such as Bulk Publisher Studio → Generate API Key.
+3. Copy the generated key. In this dashboard: Platforms → DEV Community → Connect → paste it into API key / OAuth access token.
+4. Press Test connection → Save connection. Return to Compose, select DEV Community and Publish.
+
+Up to four normalized tags. Publish relevant content and follow DEV's rules. The key is sensitive.
+
+[Official platform / setup documentation](https://developers.forem.com/api/v0#tag/articles/operation/createArticle)
+
+### Hashnode
+
+**What to enter here:** No token. Optional publication dashboard URL.
+
+1. Sign in at hashnode.com and create/select your blog/publication.
+2. Open its dashboard → Write / New article. Copy that editor or dashboard URL into this destination's optional URL field if you want a shortcut.
+3. Use this app's guided dialog to copy the title/article, open Hashnode, format and add media.
+4. Press Publish in Hashnode, then copy the public article URL back to this dashboard → Record publication.
+
+The free workflow uses Hashnode's browser editor. Its paid API access is not used by this app.
+
+[Official platform / setup documentation](https://hashnode.com)
+
+### Tumblr
+
+**What to enter here:** OAuth2 access_token with basic + write scopes, plus blog name/hostname.
+
+1. Sign in to Tumblr and select your blog. Copy its blog name (for example, myblog) or hostname (myblog.tumblr.com).
+2. Open tumblr.com/oauth/apps → Register application. Record the app's OAuth client credentials privately and configure an authorized callback URL you control.
+3. Use Tumblr's documented OAuth2 authorization-code flow with basic and write scopes; exchange the authorization code at https://api.tumblr.com/v2/oauth2/token.
+4. Copy the OAuth2 access_token, not the Consumer Key or Consumer Secret. In this dashboard: Platforms → Tumblr → Connect → paste the token and blog name/hostname.
+5. Press Test connection → Save connection. This app accepts a bearer token; obtaining/refreshing it currently requires the external OAuth flow.
+
+OAuth developer setup is required. Text, public image URLs and tags are supported; review Markdown punctuation and platform limits.
+
+[Official platform / setup documentation](https://www.tumblr.com/docs/en/api/v2)
+
+### Substack
+
+**What to enter here:** No token. Optional publication dashboard URL.
+
+1. Sign in at substack.com and open your publication's Dashboard.
+2. Choose New post / Text post and copy that publication dashboard URL for the optional editor shortcut in this app.
+3. In the guided dialog, copy title/article → Open editor. Paste and review formatting/media in Substack.
+4. Choose whether to publish only on the web or also send email/app notifications. Publish in Substack, then record the public article URL here.
+
+You must press the final publish/send button in Substack. Check email delivery settings before publishing.
+
+[Official platform / setup documentation](https://substack.com)
+
+### LinkedIn Articles
+
+**What to enter here:** No token. A LinkedIn profile or Page with author access.
+
+1. Sign in at linkedin.com. From the home feed choose Write article (for a Page, choose the correct publishing identity).
+2. Use the guided dialog to copy title/article → Open editor (linkedin.com/article/new/).
+3. Paste text, add a cover image and format with LinkedIn's editor → Next / Publish.
+4. Copy the public article address and record it in this dashboard.
+
+Native long-form Articles require manual completion here. No LinkedIn password or token is requested by this destination.
+
+[Official platform / setup documentation](https://www.linkedin.com)
+
+### beehiiv
+
+**What to enter here:** No token. Optional publication dashboard URL.
+
+1. Sign in at app.beehiiv.com and select your publication.
+2. Open the post editor using Start writing / Write → Posts → Create post (the label may vary by account).
+3. Copy the content from the guided dialog, paste it in beehiiv, add media and choose web/email distribution.
+4. Publish in beehiiv, then paste the public web-post URL into this dashboard → Record publication.
+
+Free-plan publishing uses the browser editor. The paid Create Post API is not connected.
+
+[Official platform / setup documentation](https://www.beehiiv.com)
+
+### Wix Blog
+
+**What to enter here:** No token. Wix site editor/dashboard URL.
+
+1. Sign in at manage.wix.com and select your site. Add Wix Blog from the site editor's Add Apps if the site has no blog.
+2. In the site dashboard open Blog → Posts → Create New Post.
+3. Use this app's guided dialog to copy the article, then paste/format it in Wix and add photos with Wix's media controls.
+4. Publish the post and make sure the Wix site is published. Record the public post URL here.
+
+The app does not automate Wix's API. The free Wix-branded site and its editor are used.
+
+[Official platform / setup documentation](https://www.wix.com)
+
+### Square Online / Weebly
+
+**What to enter here:** No token. Your Square Online/Weebly editor URL.
+
+1. For Square, sign in to squareup.com/dashboard and open your Online site editor. For an existing Weebly site, sign in to its own dashboard.
+2. For Square Stories, open the website editor and add/select a Stories page; create a story. Existing Weebly users add/select their Blog page and create a post.
+3. Copy the article from this app, paste and format it in the site editor, add media, then Publish the story/site.
+4. Open the public post in a reader tab and record that URL in this app.
+
+Manual editor workflow. Use an account/site that actually provides Stories or Blog editing.
+
+[Official platform / setup documentation](https://squareup.com/us/en/online-store)
+
+### Telegra.ph — Account 2
+
+**What to enter here:** This slot's own Telegraph access token. No username/password or site ID.
+
+1. In this dashboard open Platforms → Telegra.ph — Account 2 → Connect.
+2. Click Create a free Telegraph account. The app requests a new account from Telegraph and fills this slot's token field; no existing login is needed.
+3. Click Test connection → Save connection. If you want to retain editing access, copy the token into your private password manager before the browser session ends.
+4. Return to Compose, select Telegra.ph — Account 2 and Publish. Open the returned public URL in Overview → Published links or Activity.
+
+This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit.
+
+[Official platform / setup documentation](https://telegra.ph/api)
+
+### Vocal Media
+
+**What to enter here:** No API token. Vocal account, Wallet/Stripe setup and story details.
+
+1. Sign in at vocal.media. Open your account's Wallet and complete the Stripe connection required by Vocal; do this on Vocal, not in this app.
+2. Choose Create story. Prepare title, subtitle, featured image, article text, tags and the correct community.
+3. Copy content from this app's guided dialog into Vocal's editor, review its word-count and content rules, then submit for review.
+4. Wait for editorial approval. Only after the story is publicly accessible, copy its URL into this app → Record publication.
+
+Submitting for moderation is not immediate publication. A private editor URL is not a live story URL.
+
+[Official platform / setup documentation](https://vocal.media)
+
+### LiveJournal
+
+**What to enter here:** No token. Journal/community posting access and optional editor URL.
+
+1. Sign in at livejournal.com and open livejournal.com/update.bml (Post / New entry).
+2. Choose your journal or a community where you have posting permission.
+3. Copy the guided article into the editor, add media, choose Public visibility and submit the entry.
+4. Open the public entry and record its URL in this dashboard.
+
+Uses LiveJournal's own editor; its legacy XML-RPC API is not integrated.
+
+[Official platform / setup documentation](https://www.livejournal.com)
+
+### Bear Blog
+
+**What to enter here:** No token. Bear Blog dashboard URL and public image URLs.
+
+1. Sign in at bearblog.dev → Dashboard and create/select your blog.
+2. Open Posts → New post (or the dashboard's new-post action).
+3. Copy the Markdown article from the guided dialog. Use external HTTPS image URLs for photos on the free plan.
+4. Publish the post in Bear Blog, then copy its public URL back to this dashboard.
+
+Free workflow uses external images; Bear's built-in image uploads may require an upgrade.
+
+[Official platform / setup documentation](https://bearblog.dev)
+
+### Telegra.ph — Account 1
+
+**What to enter here:** Workspace token, or a token saved for Account 1. No username/password or site ID.
+
+1. In this dashboard open Platforms → Telegra.ph — Account 1 → Connect.
+2. If the hosted workspace token is already configured you can use it. Otherwise click Create a free Telegraph account, or paste your existing token.
+3. Click Test connection → Save connection. If you want to retain editing access, copy the token into your private password manager before the browser session ends.
+4. Return to Compose, select Telegra.ph — Account 1 and Publish. Open the returned public URL in Overview → Published links or Activity.
+
+This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit.
+
+[Official platform / setup documentation](https://telegra.ph/api)
+
+### Quora Spaces
+
+**What to enter here:** No token. Space URL and contributor/moderator/admin posting rights.
+
+1. Sign in at quora.com and open a Space you manage or can contribute to.
+2. Use its Create post action. Confirm your role can publish directly; followers may only submit for approval.
+3. Copy title/article from this app's guided dialog, paste and format it in the Space, then Post/Submit.
+4. If moderation is required, wait for approval. Record the resulting public post URL here.
+
+Final publication takes place in Quora. Do not record a private draft or unapproved submission as published.
+
+[Official platform / setup documentation](https://www.quora.com)
+
+### Telegra.ph — Account 3
+
+**What to enter here:** This slot's own Telegraph access token. No username/password or site ID.
+
+1. In this dashboard open Platforms → Telegra.ph — Account 3 → Connect.
+2. Click Create a free Telegraph account. The app requests a new account from Telegraph and fills this slot's token field; no existing login is needed.
+3. Click Test connection → Save connection. If you want to retain editing access, copy the token into your private password manager before the browser session ends.
+4. Return to Compose, select Telegra.ph — Account 3 and Publish. Open the returned public URL in Overview → Published links or Activity.
+
+This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit.
+
+[Official platform / setup documentation](https://telegra.ph/api)
+
+### Telegra.ph — Account 4
+
+**What to enter here:** This slot's own Telegraph access token. No username/password or site ID.
+
+1. In this dashboard open Platforms → Telegra.ph — Account 4 → Connect.
+2. Click Create a free Telegraph account. The app requests a new account from Telegraph and fills this slot's token field; no existing login is needed.
+3. Click Test connection → Save connection. If you want to retain editing access, copy the token into your private password manager before the browser session ends.
+4. Return to Compose, select Telegra.ph — Account 4 and Publish. Open the returned public URL in Overview → Published links or Activity.
+
+This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit.
+
+[Official platform / setup documentation](https://telegra.ph/api)
+
+### Notion Sites
+
+**What to enter here:** No token. A page you can edit and permission to publish it.
+
+1. Sign in to Notion, choose a workspace and create/open the page for your article.
+2. Copy the guided article into the page. Format headings and add image blocks as needed.
+3. At the top of the page choose Share → Publish → Publish to web. Review the public-sharing settings yourself.
+4. Copy the published web URL (not the private workspace/editor URL) and record it in this dashboard.
+
+Public sharing must be completed in Notion. A workspace page address alone does not make a page public.
+
+[Official platform / setup documentation](https://www.notion.com)
 
 ## The 10 webpage hosts
 
