@@ -55,3 +55,6 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+/.dev.vars*
+/wrangler.local.json
+/bulkpublisher-source.zip

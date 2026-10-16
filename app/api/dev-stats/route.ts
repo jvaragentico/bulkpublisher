@@ -3,7 +3,7 @@ import { deliveries } from "@/db/schema";
 import { db, fail, json, readJson, userId } from "@/lib/api";
 
 export async function POST(request: Request) {
-  const user = userId(request);
+  const user = await userId(request);
   if (!user) return fail("Sign in to refresh views.", 401);
   try {
     const input = await readJson(request);
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     if (!own.length) return json({ updated: 0 });
     let updated = 0;
     for (let page = 1; page <= 3; page++) {
-      const response = await fetch(`https://dev.to/api/articles/me/published?per_page=100&page=${page}`, { headers: { "api-key": token, accept: "application/vnd.forem.api-v1+json", "user-agent": "BulkPublisherStudio/1.0" } });
+      const response = await fetch(`https://dev.to/api/articles/me/published?per_page=100&page=${page}`, { headers: { "api-key": token, accept: "application/vnd.forem.api-v1+json", "user-agent": "BulkPublisherStudio/1.0" }, signal: AbortSignal.timeout(25000) });
       if (!response.ok) return fail(`DEV returned ${response.status}. Check your API key.`, 502);
       const remote = await response.json() as Array<{ url?: string; page_views_count?: number }>;
       for (const item of remote) {

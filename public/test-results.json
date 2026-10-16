@@ -1,0 +1,20 @@
+{
+  "provider": "Telegra.ph",
+  "results": [
+    {
+      "title": "Bulk Publisher Studio: a live publishing test",
+      "url": "https://telegra.ph/Bulk-Publisher-Studio-a-live-publishing-test-10-16",
+      "checkedAt": "2026-10-16T10:00:26.165Z"
+    },
+    {
+      "title": "Bulk Publisher Studio: media and formatting test",
+      "url": "https://telegra.ph/Bulk-Publisher-Studio-media-and-formatting-test-10-16",
+      "checkedAt": "2026-10-16T10:00:26.372Z"
+    },
+    {
+      "title": "Bulk Publisher Studio: document-to-article workflow test",
+      "url": "https://telegra.ph/Bulk-Publisher-Studio-document-to-article-workflow-test-10-16",
+      "checkedAt": "2026-10-16T10:00:26.572Z"
+    }
+  ]
+}

@@ -1,5 +1,20 @@
 import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
+export const adminSessions = sqliteTable("admin_sessions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  expiresAt: integer("expires_at").notNull(),
+});
+export const loginAttempts = sqliteTable("login_attempts", {
+  id: text("id").primaryKey(), count: integer("count").notNull(), expiresAt: integer("expires_at").notNull(),
+});
+export const hostJobs = sqliteTable("host_jobs", {
+  id: text("id").primaryKey(), userId: text("user_id").notNull(), provider: text("provider").notNull(),
+  runId: text("run_id").notNull(), state: text("state").notNull(), url: text("url").notNull().default(""),
+  remoteId: text("remote_id").notNull().default(""), error: text("error").notNull().default(""),
+  articleIds: text("article_ids").notNull().default("[]"), updatedAt: text("updated_at").notNull(),
+});
+
 export const articles = sqliteTable("articles", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),

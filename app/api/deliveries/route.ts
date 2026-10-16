@@ -4,7 +4,7 @@ import { db, fail, json, readJson, safeUrl, userId } from "@/lib/api";
 import { platformById } from "@/lib/catalog";
 
 export async function POST(request: Request) {
-  const user = userId(request);
+  const user = await userId(request);
   if (!user) return fail("Sign in to record publications.", 401);
   try {
     const input = await readJson(request);

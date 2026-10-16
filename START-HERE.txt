@@ -1,0 +1,26 @@
+Bulk Publisher Studio
+
+1. Install Node.js 24 or later (22.18+ also accepted).
+2. Open a terminal in this folder, beside package.json.
+3. Run:
+
+   npm ci
+   npm run setup:local
+   npm start
+
+4. Open http://127.0.0.1:8787
+5. Sign in: admin / admin
+
+Change ADMIN_PASSWORD in the private .dev.vars file before sharing access.
+
+Simple local and VPS instructions:
+public/guides/QUICKSTART.md
+
+What to provide for each of the 20 platforms and 10 webpage hosts:
+public/guides/PLATFORM-GUIDE.md
+
+Review results and limits: TEST-REPORT.md
+Simple usage terms: TERMS.md
+
+Your public article URLs are visible in the dashboard under Published links,
+Activity, and Page hosts deployment results.

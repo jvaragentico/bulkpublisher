@@ -3,14 +3,16 @@ import { articles, deliveries } from "@/db/schema";
 import { db, fail, json, readJson, safeUrl, userId } from "@/lib/api";
 
 export async function POST(request: Request) {
-  const user = userId(request);
+  const user = await userId(request);
   if (!user) return fail("Sign in to save articles.", 401);
   try {
     const input = await readJson(request);
     const id = typeof input.id === "string" && input.id ? input.id : crypto.randomUUID();
+    if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id)) return fail("Invalid article ID.");
     const title = String(input.title ?? "").trim().slice(0, 220);
     if (!title) return fail("Add a title before saving.");
-    const body = String(input.body ?? "").slice(0, 100_000);
+    const body = String(input.body ?? "");
+    if (body.length > 100000) return fail("Article text exceeds 100,000 characters. Split it into smaller articles.");
     const excerpt = String(input.excerpt ?? "").trim().slice(0, 500);
     const keywords = Array.isArray(input.keywords) ? [...new Set(input.keywords.map((value: unknown) => String(value).trim().replace(/^#/, "").slice(0, 40)).filter(Boolean))].slice(0, 20) : [];
     const coverUrl = safeUrl(input.coverUrl);
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const user = userId(request);
+  const user = await userId(request);
   if (!user) return fail("Sign in to delete articles.", 401);
   try {
     const input = await readJson(request);

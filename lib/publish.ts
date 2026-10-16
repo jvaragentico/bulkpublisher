@@ -1,88 +1,110 @@
-type Post = {
-  title: string;
-  excerpt: string;
-  body: string;
-  keywords: string;
-  coverUrl: string;
-  videoUrl: string;
-  canonicalUrl: string;
-};
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
+export type Post = { title: string; excerpt: string; body: string; keywords: string; coverUrl: string; videoUrl: string; canonicalUrl: string };
+export type ContentNode = string | { tag: string; attrs?: Record<string, string>; children?: ContentNode[] };
+export class UnknownPublishError extends Error {}
+export function escapeHtml(value: string) { return value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!); }
+export function publicUrl(value: unknown) {
+  if (typeof value !== "string") throw new UnknownPublishError("No public URL returned. Check the destination before retrying.");
+  let url: URL;
+  try { url = new URL(value); } catch { throw new UnknownPublishError("The platform returned an invalid URL. Inspect the destination before retrying."); }
+  if (url.protocol !== "https:") throw new UnknownPublishError("Unexpected destination URL. Check its dashboard.");
+  return url.toString();
 }
-
-function inline(value: string) {
-  return escapeHtml(value)
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/`(.+?)`/g, "<code>$1</code>")
-    .replace(/\[([^\]]+)\]\((https:\/\/[^\s)]+)\)/g, '<a href="$2" rel="noopener noreferrer">$1</a>');
-}
-
-export function markdownToHtml(markdown: string) {
-  return markdown.split(/\n{2,}/).map((block) => {
-    const text = block.trim();
-    if (!text) return "";
-    const h = text.match(/^(#{1,3})\s+(.+)$/);
-    if (h) return `<h${h[1].length}>${inline(h[2])}</h${h[1].length}>`;
-    if (text.startsWith("- ")) return `<ul>${text.split("\n").map((line) => `<li>${inline(line.replace(/^-\s*/, ""))}</li>`).join("")}</ul>`;
-    return `<p>${inline(text).replace(/\n/g, "<br>")}</p>`;
-  }).join("\n");
-}
-
-export function postHtml(post: Post) {
-  const cover = post.coverUrl ? `<p><img src="${escapeHtml(post.coverUrl)}" alt="${escapeHtml(post.title)}"></p>` : "";
-  const video = post.videoUrl ? `<p><a href="${escapeHtml(post.videoUrl)}">Watch the accompanying video</a></p>` : "";
-  return cover + markdownToHtml(post.body) + video;
-}
-
-async function remoteJson(url: string, headers: Record<string, string>, body: unknown) {
-  const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", ...headers }, body: JSON.stringify(body) });
-  const text = await response.text();
-  let data: Record<string, unknown> = {};
-  try { data = JSON.parse(text); } catch { /* remote errors can be plain text */ }
-  if (!response.ok) {
-    const detail = typeof data.message === "string" ? data.message : typeof data.error === "string" ? data.error : text.slice(0, 180);
-    throw new Error(`${response.status}: ${detail || "The platform rejected this post."}`);
+function inline(text: string): ContentNode[] {
+  const nodes: ContentNode[] = []; let cursor = 0;
+  const pattern = /!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)|\[([^\]]+)\]\((https:\/\/[^\s)]+)\)|\*\*(.+?)\*\*|\*([^*]+)\*|\x60([^\x60]+)\x60/g;
+  for (const match of text.matchAll(pattern)) {
+    nodes.push(text.slice(cursor, match.index));
+    if (match[2]) nodes.push({ tag: "img", attrs: { src: match[2] } });
+    else if (match[4]) nodes.push({ tag: "a", attrs: { href: match[4] }, children: [match[3]] });
+    else nodes.push({ tag: match[5] ? "strong" : match[6] ? "em" : "code", children: [match[5] || match[6] || match[7]] });
+    cursor = match.index! + match[0].length;
   }
+  nodes.push(text.slice(cursor)); return nodes.filter(n => n !== "");
+}
+export function markdownNodes(markdown: string): ContentNode[] {
+  const nodes: ContentNode[] = [];
+  for (const block of markdown.replace(/\r/g, "").split(/\n\s*\n/)) {
+    if (block.startsWith("\x60\x60\x60")) { nodes.push({ tag: "pre", children: [{ tag: "code", children: [block.replace(/^\x60{3}[^\n]*\n?/, "").replace(/\n?\x60{3}$/, "")] }] }); continue; }
+    for (const line of block.split("\n")) {
+      if (!line.trim()) continue;
+      if (/^#{1,6}\s/.test(line)) nodes.push({ tag: line.startsWith("# ") || line.startsWith("## ") ? "h3" : "h4", children: inline(line.replace(/^#+\s/, "")) });
+      else if (/^[-*]\s/.test(line)) {
+        const previous = nodes.at(-1); const child = { tag: "li", children: inline(line.slice(2)) };
+        if (typeof previous === "object" && previous.tag === "ul") previous.children!.push(child); else nodes.push({ tag: "ul", children: [child] });
+      } else if (/^>\s/.test(line)) nodes.push({ tag: "blockquote", children: inline(line.slice(2)) });
+      else nodes.push({ tag: "p", children: inline(line) });
+    }
+  }
+  return nodes;
+}
+function render(node: ContentNode): string {
+  if (typeof node === "string") return escapeHtml(node);
+  const attrs = Object.entries(node.attrs || {}).map(([key, value]) => " " + key + '="' + escapeHtml(value) + '"').join("");
+  return "<" + node.tag + attrs + ">" + (["img", "br"].includes(node.tag) ? "" : (node.children || []).map(render).join("") + "</" + node.tag + ">");
+}
+export function markdownToHtml(markdown: string) { return markdownNodes(markdown).map(render).join("\n"); }
+export function postNodes(post: Post): ContentNode[] {
+  return [...(post.coverUrl ? [{ tag: "figure", children: [{ tag: "img", attrs: { src: post.coverUrl } }] }] : []), ...markdownNodes(post.body), ...(post.videoUrl ? [{ tag: "p", children: [{ tag: "a", attrs: { href: post.videoUrl }, children: ["Watch the video"] }] }] : []), ...(post.canonicalUrl ? [{ tag: "p", children: [{ tag: "a", attrs: { href: post.canonicalUrl }, children: ["Originally published here"] }] }] : [])];
+}
+export function postHtml(post: Post) { return postNodes(post).map(render).join("\n"); }
+export function postMarkdown(post: Post) { return (post.coverUrl ? "![Cover](" + post.coverUrl + ")\n\n" : "") + post.body + (post.videoUrl ? "\n\n[Watch the video](" + post.videoUrl + ")" : "") + (post.canonicalUrl ? "\n\n[Original article](" + post.canonicalUrl + ")" : ""); }
+export async function remoteJson(url: string, headers: Record<string, string>, body?: unknown, method = body ? "POST" : "GET"): Promise<any> {
+  let response: Response;
+  try { response = await fetch(url, { method, headers: { "Content-Type": "application/json", "User-Agent": "BulkPublisherStudio/2.0", ...headers }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(25000), redirect: "error" }); }
+  catch { throw new UnknownPublishError("Network response interrupted. Check the platform before retrying to avoid duplicates."); }
+  if (response.status >= 500) throw new UnknownPublishError("Platform error " + response.status + ". Check the destination before retrying.");
+  let data: any;
+  try { data = await response.json(); } catch { throw new UnknownPublishError("Unreadable platform response. Check its dashboard."); }
+  if (!response.ok) throw new Error([401,403].includes(response.status) ? "Authentication or permission rejected (" + response.status + "). Check token, scope and ownership." : response.status === 429 ? "Rate limit reached. Wait before retrying." : "Platform rejected the request (" + response.status + "). Check content limits and destination settings.");
+  if (data.ok === false) throw new Error("Telegraph rejected the request: " + String(data.error).replace(/[^A-Z0-9_ -]/gi, "").slice(0, 80));
   return data;
 }
-
-export async function publish(platformId: string, post: Post, token: string, siteId: string) {
-  if (!token.trim()) throw new Error("Add an access token or API key for this platform.");
+export function validatePublish(id: string, post: Post, token: string, siteId: string) {
+  if (!["dev", "wordpress", "blogger", "telegraph", "hackmd", "tumblr"].includes(id)) throw new Error("Use this destination's guided editor workflow.");
+  if (!token.trim()) throw new Error("Add an access token or API key in Platforms.");
+  if (["wordpress", "blogger", "tumblr"].includes(id) && !siteId.trim()) throw new Error("Add the target site or blog ID.");
+  if (!post.body.trim()) throw new Error("Add article text first.");
+  if (id === "dev" && /^\s*---\s*\n/.test(post.body)) throw new Error("Remove YAML front matter; use the title, tags and media fields.");
+  if (id === "telegraph" && new TextEncoder().encode(JSON.stringify(postNodes(post))).length > 64000) throw new Error("Telegraph content exceeds 64 KB. Shorten the article.");
+}
+export async function publish(id: string, post: Post, token: string, siteId: string) {
+  validatePublish(id, post, token, siteId);
   const tags = JSON.parse(post.keywords || "[]") as string[];
-  if (platformId === "dev") {
-    const data = await remoteJson("https://dev.to/api/articles", {
-      "api-key": token,
-      "accept": "application/vnd.forem.api-v1+json",
-      "user-agent": "BulkPublisherStudio/1.0",
-    }, { article: {
-      title: post.title,
-      body_markdown: `${post.body}${post.videoUrl ? `\n\n[Watch the video](${post.videoUrl})` : ""}`,
-      published: true,
-      description: post.excerpt || undefined,
-      tags: tags.slice(0, 4),
-      main_image: post.coverUrl || undefined,
-      canonical_url: post.canonicalUrl || undefined,
-    } });
-    if (typeof data.url !== "string") throw new Error("DEV did not return an article URL. Check your account before retrying.");
-    return { url: data.url, views: Number(data.page_views_count) || 0 };
+  const auth = { Authorization: "Bearer " + token };
+  if (id === "dev") {
+    const data = await remoteJson("https://dev.to/api/articles", { "api-key": token, accept: "application/vnd.forem.api-v1+json" }, { article: { title: post.title, body_markdown: postMarkdown({ ...post, coverUrl: "" }), published: true, description: post.excerpt || undefined, tags: [...new Set(tags.map(t => t.toLowerCase().replace(/[^a-z0-9]/g, "")).filter(Boolean))].slice(0, 4), main_image: post.coverUrl || undefined, canonical_url: post.canonicalUrl || undefined } });
+    return { url: publicUrl(data.url), views: Number(data.page_views_count) || 0 };
   }
-  if (!siteId.trim()) throw new Error("Add the target site or blog ID.");
-  if (platformId === "wordpress") {
-    const data = await remoteJson(`https://public-api.wordpress.com/wp/v2/sites/${encodeURIComponent(siteId)}/posts`, {
-      Authorization: `Bearer ${token}`,
-    }, { title: post.title, content: postHtml(post), excerpt: post.excerpt, status: "publish" });
-    if (typeof data.link !== "string") throw new Error("WordPress did not return a post URL. Check your site before retrying.");
-    return { url: data.link, views: 0 };
+  if (id === "wordpress") {
+    const data = await remoteJson("https://public-api.wordpress.com/rest/v1.2/sites/" + encodeURIComponent(siteId) + "/posts/new", auth, { title: post.title, content: postHtml(post), excerpt: post.excerpt, status: "publish", tags: tags.join(",") });
+    return { url: publicUrl(data.URL), views: 0 };
   }
-  if (platformId === "blogger") {
-    const data = await remoteJson(`https://www.googleapis.com/blogger/v3/blogs/${encodeURIComponent(siteId)}/posts`, {
-      Authorization: `Bearer ${token}`,
-    }, { kind: "blogger#post", title: post.title, content: postHtml(post), labels: tags });
-    if (typeof data.url !== "string") throw new Error("Blogger did not return a post URL. Check your blog before retrying.");
-    return { url: data.url, views: 0 };
+  if (id === "blogger") {
+    const data = await remoteJson("https://www.googleapis.com/blogger/v3/blogs/" + encodeURIComponent(siteId) + "/posts", auth, { kind: "blogger#post", title: post.title, content: postHtml(post), labels: tags });
+    return { url: publicUrl(data.url), views: 0 };
   }
-  throw new Error("This platform uses guided publishing.");
+  if (id === "telegraph") {
+    const data = await remoteJson("https://api.telegra.ph/createPage", {}, { access_token: token, title: post.title, author_name: "Bulk Publisher Studio", content: postNodes(post), return_content: true });
+    return { url: publicUrl(data.result?.url), views: Number(data.result?.views) || 0 };
+  }
+  if (id === "hackmd") {
+    const data = await remoteJson("https://api.hackmd.io/v1/notes", auth, { title: post.title, description: post.excerpt, tags, content: "# " + post.title + "\n\n" + postMarkdown(post), readPermission: "guest", writePermission: "owner" });
+    const note = data.note || data;
+    if (note.readPermission && note.readPermission !== "guest") throw new UnknownPublishError("HackMD created a private note. Inspect it before retrying.");
+    return { url: publicUrl(note.publishLink), views: 0 };
+  }
+  const content: any[] = [{ type: "text", subtype: "heading1", text: post.title }];
+  if (post.coverUrl) content.push({ type: "image", media: [{ url: post.coverUrl }] });
+  for (const block of postMarkdown({ ...post, coverUrl: "" }).split(/\n{2,}/)) {
+    const picture = block.trim().match(/^!\[[^\]]*\]\((https:\/\/[^\s)]+)\)$/);
+    if (!picture && block.length > 4096) throw new Error("Tumblr paragraphs must be under 4096 characters. Split this paragraph.");
+    content.push(picture ? { type: "image", media: [{ url: picture[1] }] } : { type: "text", text: block.replace(/^#{1,6}\s/, "") });
+  }
+  const data = await remoteJson("https://api.tumblr.com/v2/blog/" + encodeURIComponent(siteId) + "/posts", auth, { content, state: "published", tags: tags.join(",") });
+  const postId = data.response?.id;
+  if (!postId) throw new UnknownPublishError("Tumblr did not return a post ID. Check the blog.");
+  try {
+    const lookup = await remoteJson("https://api.tumblr.com/v2/blog/" + encodeURIComponent(siteId) + "/posts?id=" + encodeURIComponent(String(postId)), auth);
+    return { url: publicUrl(lookup.response?.posts?.[0]?.post_url), views: 0 };
+  } catch { throw new UnknownPublishError("Tumblr accepted post " + String(postId) + ", but its public URL could not be retrieved. Inspect the blog and record the URL; do not republish."); }
 }

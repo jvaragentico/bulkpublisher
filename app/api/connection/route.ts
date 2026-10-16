@@ -1,0 +1,34 @@
+import { env } from "cloudflare:workers";
+import { fail, json, readJson, userId } from "@/lib/api";
+import { remoteJson } from "@/lib/publish";
+export async function POST(request: Request) {
+  if (!await userId(request)) return fail("Sign in first.", 401);
+  try {
+    const input = await readJson(request); const id = String(input.platformId); const site = encodeURIComponent(String(input.siteId || ""));
+    if (input.action === "create" && id === "telegraph") {
+      const data = await remoteJson("https://api.telegra.ph/createAccount", {}, { short_name: "BulkPublisher", author_name: "Bulk Publisher Studio" });
+      return json({ token: data.result.access_token });
+    }
+    const token = String(input.token || (id === "telegraph" ? env.TELEGRAPH_TOKEN || "" : ""));
+    if (!token) return fail("Add a token before testing.");
+    const bearer = { Authorization: `Bearer ${token}` };
+    if (id === "dev") await remoteJson("https://dev.to/api/users/me", { "api-key": token });
+    else if (id === "wordpress") {
+      const data = await remoteJson("https://public-api.wordpress.com/rest/v1.2/me/sites", bearer);
+      const wanted = String(input.siteId || "").toLowerCase();
+      if (!data.sites?.some((s: any) => String(s.ID) === wanted || (typeof s.URL === "string" && new URL(s.URL).hostname.toLowerCase() === wanted))) throw new Error("Token accepted, but this site is not in the account's site list. Check the site ID/domain and permissions.");
+    }
+    else if (id === "blogger") {
+      const data = await remoteJson("https://www.googleapis.com/blogger/v3/users/self/blogs", bearer);
+      if (!data.items?.some((blog: any) => String(blog.id) === String(input.siteId || ""))) throw new Error("Token accepted, but this blog is not in the account's blog list.");
+    }
+    else if (id === "hackmd") await remoteJson("https://api.hackmd.io/v1/me", bearer);
+    else if (id === "telegraph") await remoteJson("https://api.telegra.ph/getAccountInfo", {}, { access_token: token });
+    else if (id === "tumblr") {
+      const result = await remoteJson("https://api.tumblr.com/v2/user/info", bearer);
+      const wanted = String(input.siteId || "").replace(/\.tumblr\.com$/, "");
+      if (!result.response?.user?.blogs?.some((b: any) => b.name === wanted || b.uuid === wanted)) throw new Error("Token is valid, but this blog is not in your account.");
+    } else return fail("This destination uses its own browser login.");
+    return json({ ok: true, message: "Credential accepted by the platform. Publishing permissions and content limits are checked when you publish." });
+  } catch (error) { return fail(error instanceof Error ? error.message : "Connection test failed.", 400); }
+}
