@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       const data = await remoteJson("https://api.telegra.ph/createAccount", {}, { short_name: `BulkPublisher-${id === "telegraph" ? "1" : id.split("-")[1]}`, author_name: "Bulk Publisher Studio" });
       return json({ token: data.result.access_token });
     }
-    const token = resolvePublishingToken(id, input.token, env.TELEGRAPH_TOKEN);
+    const token = resolvePublishingToken(id, input.token, env);
     if (!token) return fail("Add a token before testing.");
     const bearer = { Authorization: `Bearer ${token}` };
     if (id === "dev") await remoteJson("https://dev.to/api/users/me", { "api-key": token });

@@ -4,6 +4,8 @@ A working private dashboard for composing/importing articles, managing 20 publis
 
 Start with [the simple local and VPS guide](public/guides/QUICKSTART.md) and [what to provide for every platform](public/guides/PLATFORM-GUIDE.md).
 
+On Windows, extract the entire ZIP into a new empty folder and double-click **START-WINDOWS.cmd**. The new archive places `package.json` and `package-lock.json` directly in the extracted folder. For an older archive with a nested `bulkpublisher` folder, first run `cd bulkpublisher`. Run the commands below only beside `package.json`.
+
 ```sh
 npm ci
 npm run setup:local

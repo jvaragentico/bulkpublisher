@@ -6,7 +6,7 @@ type Config = Record<string, string>;
 const encode = encodeURIComponent;
 const base64 = (s: string) => Buffer.from(s, "utf8").toString("base64");
 async function call(url: string, headers: Record<string, string>, method = "GET", body?: unknown, raw = false): Promise<any> {
-  const response = await fetch(url, { method, headers: { "User-Agent": "BulkPublisherStudio/2.0", ...(!raw && body !== undefined ? { "Content-Type": "application/json" } : {}), ...headers }, body: body === undefined ? undefined : raw ? body as BodyInit : JSON.stringify(body), signal: AbortSignal.timeout(30000), redirect: "error" });
+  const response = await fetch(url, { method, headers: { "User-Agent": "BulkPublisherStudio/2.0", ...(!raw && body !== undefined ? { "Content-Type": "application/json" } : {}), ...headers }, body: body === undefined ? undefined : raw ? body as BodyInit : JSON.stringify(body), signal: AbortSignal.timeout(30000), redirect: "manual" });
   if (!response.ok) throw new Error(`Host rejected request (${response.status}). Check token permissions, site setup and quota. Inspect the host before retrying.`);
   const text = await response.text();
   if (!text) return {};
@@ -111,5 +111,5 @@ export async function deployHost(id: string, c: Config, token: string, second: s
   return { url: allowedHostUrl(url), remoteId };
 }
 export async function verifyHost(url: string, runId: string) {
-  try { const response = await fetch(`${allowedHostUrl(url)}/bp-manifest.json?check=${encode(runId)}`, { cache: "no-store", redirect: "error", signal: AbortSignal.timeout(10000) }); if (!response.ok) return false; const text = await response.text(); return text.length < 10000 && JSON.parse(text).runId === runId; } catch { return false; }
+  try { const response = await fetch(`${allowedHostUrl(url)}/bp-manifest.json?check=${encode(runId)}`, { cache: "no-store", redirect: "manual", signal: AbortSignal.timeout(10000) }); if (!response.ok) return false; const text = await response.text(); return text.length < 10000 && JSON.parse(text).runId === runId; } catch { return false; }
 }

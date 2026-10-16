@@ -113,3 +113,9 @@ You can also use **Download HTML website ZIP** to export your articles without c
 ## Live test results
 
 Three real, labeled Telegraph pages were created and checked on 16 October 2026. See **Guide & tests** in the dashboard or `public/test-results.json` for the links. No preexisting user credentials were supplied; Telegraph generated an account token through its API. Other providers require a live test with your credentials before claiming full account-level readiness.
+
+## Telegra.ph keys across browser tabs
+
+The hosted dashboard has four separate Telegra.ph keys configured as server secrets. You can publish from any signed-in tab without pasting them again. Local/VPS copies can keep each key privately in `.dev.vars`: `TELEGRAPH_TOKEN`, `TELEGRAPH_TOKEN_2`, `TELEGRAPH_TOKEN_3`, `TELEGRAPH_TOKEN_4`. Restart after changing these values. Never put actual keys in GitHub or the source ZIP. Manually entered overrides still last only in their current tab.
+
+If Activity shows earlier connection failures from before the runtime fix, use **Repair old connection errors**. Only the known requests blocked before transmission are unlocked. Later uncertain requests remain protected against duplicates.

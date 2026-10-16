@@ -89,7 +89,7 @@ for (let account = 1; account <= 4; account++) {
     provide: account === 1 ? "Workspace token, or a token saved for Account 1. No username/password or site ID." : "This slot's own Telegraph access token. No username/password or site ID.",
     needs: [
       "In this dashboard open Platforms → Telegra.ph — Account " + account + " → Connect.",
-      account === 1 ? "If the hosted workspace token is already configured you can use it. Otherwise click Create a free Telegraph account, or paste your existing token." : "Click Create a free Telegraph account. The app requests a new account from Telegraph and fills this slot's token field; no existing login is needed.",
+      "If this slot shows Token available, its workspace key is already configured: click Test connection. Otherwise click Create a free Telegraph account, or paste this account's token.",
       "Click Test connection → Save connection. If you want to retain editing access, copy the token into your private password manager before the browser session ends.",
       "Return to Compose, select Telegra.ph — Account " + account + " and Publish. Open the returned public URL in Overview → Published links or Activity."
     ],

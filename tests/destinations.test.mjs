@@ -3,6 +3,20 @@ import assert from "node:assert/strict";
 import { platforms } from "../lib/catalog.ts";
 import { setup } from "../lib/platform-setup.ts";
 import { telegraphAccountIds, isTelegraphAccount, resolvePublishingToken } from "../lib/telegraph-accounts.ts";
+import { isLegacyRedirectFailure, legacyRedirectCutoff } from "../lib/legacy-delivery.ts";
+
+test("each workspace account resolves only its own server secret", () => {
+  const secrets = { TELEGRAPH_TOKEN: "one", TELEGRAPH_TOKEN_2: "two", TELEGRAPH_TOKEN_3: "three", TELEGRAPH_TOKEN_4: "four" };
+  telegraphAccountIds.forEach((id, i) => assert.equal(resolvePublishingToken(id, "", secrets), ["one", "two", "three", "four"][i]));
+  assert.equal(resolvePublishingToken("telegraph-3", "override", secrets), "override");
+  assert.equal(resolvePublishingToken("dev", "", secrets), "");
+  assert.equal(resolvePublishingToken("telegraph-4", "", { TELEGRAPH_TOKEN: "one" }), "");
+});
+test("only the known pre-fix runtime failure can be released for retry", () => {
+  const row = { platformId: "telegraph-2", state: "unknown", error: "Network response interrupted. Check the platform before retrying to avoid duplicates.", updatedAt: legacyRedirectCutoff };
+  assert.equal(isLegacyRedirectFailure(row), true);
+  for (const change of [{ updatedAt: "2026-10-17T00:00:00Z" }, { updatedAt: "invalid" }, { platformId: "dev" }, { state: "publishing" }, { error: "Platform error 502." }]) assert.equal(isLegacyRedirectFailure({ ...row, ...change }), false);
+});
 test("article directory has the requested replacements and accurate slot counts", () => {
   assert.equal(platforms.length, 20);
   assert.equal(new Set(platforms.map(p => p.id)).size, 20);

@@ -5,6 +5,7 @@ import { db, fail, json, readJson, userId } from "@/lib/api";
 import { platformById } from "@/lib/catalog";
 import { publish, validatePublish, UnknownPublishError } from "@/lib/publish";
 import { resolvePublishingToken } from "@/lib/telegraph-accounts";
+import { isLegacyRedirectFailure } from "@/lib/legacy-delivery";
 
 export async function POST(request: Request) {
   const user = await userId(request);
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     platformId = String(input.platformId ?? "");
     const platform = platformById[platformId];
     if (!platform || platform.method !== "api") return fail("This destination uses guided publishing.");
-    const token = resolvePublishingToken(platformId, input.token, env.TELEGRAPH_TOKEN);
+    const token = resolvePublishingToken(platformId, input.token, env);
     const siteId = String(input.siteId ?? "").trim();
     const database = db();
     const post = await database.select().from(articles).where(and(eq(articles.id, articleId), eq(articles.userId, user))).limit(1);
@@ -25,6 +26,11 @@ export async function POST(request: Request) {
     validatePublish(platformId, post[0], token, siteId);
     const existing = await database.select().from(deliveries).where(and(eq(deliveries.userId, user), eq(deliveries.articleId, articleId), eq(deliveries.platformId, platformId))).limit(1);
     if (existing[0]?.state === "published") return fail("Already published here. Open the saved URL to review it.", 409);
+    if (existing[0] && isLegacyRedirectFailure(existing[0])) {
+      const repaired = await database.update(deliveries).set({ state: "failed", error: "Earlier request was blocked before transmission by the runtime redirect setting." }).where(and(eq(deliveries.id, existing[0].id), eq(deliveries.state, "unknown"), eq(deliveries.error, existing[0].error))).returning({ id: deliveries.id });
+      if (!repaired.length) return fail("Another request already updated this publication. Refresh Activity.", 409);
+      existing[0].state = "failed";
+    }
     if (["publishing", "unknown"].includes(existing[0]?.state)) return fail("A prior request is pending or uncertain. Inspect the platform and record its URL in Activity before retrying.", 409);
     const now = new Date().toISOString();
     const deliveryId = existing[0]?.id ?? crypto.randomUUID();

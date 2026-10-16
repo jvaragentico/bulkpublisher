@@ -1,7 +1,9 @@
 Bulk Publisher Studio
 
 1. Install Node.js 24 or later (22.18+ also accepted).
-2. Open a terminal in this folder, beside package.json.
+2. Extract the entire ZIP into a NEW empty folder. Double-click START-WINDOWS.cmd.
+   Or open CMD in that folder, beside package.json AND package-lock.json.
+   Older ZIPs put the app in a nested bulkpublisher folder: cd bulkpublisher
 3. Run:
 
    npm ci

@@ -9,11 +9,11 @@ function walk(dir, relative = "") {
     if (excluded.has(name) || name.startsWith(".env") || name.startsWith(".dev.vars") || /\.(zip|tar|tsbuildinfo|log|pem)$/.test(name) || name === "wrangler.local.json") continue;
     if (entry.isSymbolicLink()) continue;
     if (entry.isDirectory()) walk(path.join(dir, name), key);
-    else files[`bulkpublisher/${key}`] = new Uint8Array(fs.readFileSync(path.join(dir, name)));
+    else files[key] = new Uint8Array(fs.readFileSync(path.join(dir, name)));
   }
 }
 walk(process.cwd());
-files["bulkpublisher/ARCHIVE-CONTENTS.txt"] = strToU8("Complete runnable source, lockfile, tests, migrations and guides. Run npm ci to install dependencies. Credentials, local database, git history, build output and caches are intentionally excluded.\n");
+files["ARCHIVE-CONTENTS.txt"] = strToU8("Extract this ZIP into a new empty folder. package.json, package-lock.json and START-WINDOWS.cmd are directly inside that folder. Double-click START-WINDOWS.cmd, or run npm ci, npm run setup:local and npm start one at a time. Credentials, local database, git history, dependencies and build output are excluded.\n");
 fs.mkdirSync("outputs", { recursive: true });
 fs.writeFileSync("outputs/bulkpublisher-source.zip", zipSync(files, { level: 6 }));
 console.log(`Packaged ${Object.keys(files).length} source files into outputs/bulkpublisher-source.zip`);

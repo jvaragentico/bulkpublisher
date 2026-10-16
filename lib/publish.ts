@@ -51,8 +51,9 @@ export function postHtml(post: Post) { return postNodes(post).map(render).join("
 export function postMarkdown(post: Post) { return (post.coverUrl ? "![Cover](" + post.coverUrl + ")\n\n" : "") + post.body + (post.videoUrl ? "\n\n[Watch the video](" + post.videoUrl + ")" : "") + (post.canonicalUrl ? "\n\n[Original article](" + post.canonicalUrl + ")" : ""); }
 export async function remoteJson(url: string, headers: Record<string, string>, body?: unknown, method = body ? "POST" : "GET"): Promise<any> {
   let response: Response;
-  try { response = await fetch(url, { method, headers: { "Content-Type": "application/json", "User-Agent": "BulkPublisherStudio/2.0", ...headers }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(25000), redirect: "error" }); }
+  try { response = await fetch(url, { method, headers: { "Content-Type": "application/json", "User-Agent": "BulkPublisherStudio/2.0", ...headers }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(25000), redirect: "manual" }); }
   catch { throw new UnknownPublishError("Network response interrupted. Check the platform before retrying to avoid duplicates."); }
+  if (response.status >= 300 && response.status < 400) throw new UnknownPublishError("Platform redirected the request. Credentials were not forwarded. Inspect the destination before retrying.");
   if (response.status >= 500) throw new UnknownPublishError("Platform error " + response.status + ". Check the destination before retrying.");
   let data: any;
   try { data = await response.json(); } catch { throw new UnknownPublishError("Unreadable platform response. Check its dashboard."); }

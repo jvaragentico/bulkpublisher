@@ -12,6 +12,7 @@ test("publishing validates credentials and DEV front matter before network write
 for (const id of ["dev", "wordpress", "blogger", "telegraph", "telegraph-2", "telegraph-3", "telegraph-4", "tumblr"]) test(`${id} constructs the publishing request and extracts the mocked public URL`, async () => {
   const requests = []; globalThis.fetch = async (url, init) => {
     requests.push({ url: String(url), init });
+    assert.equal(init.redirect, "manual", "Cloudflare supports manual redirects; credentials must not follow redirects");
     if (id === "dev") { const data = JSON.parse(init.body).article; assert.equal(data.published, true); assert.equal(data.tags.length, 4); assert.equal(data.tags[0], "webdesign"); return response({ url: "https://dev.to/test/post" }); }
     if (id === "wordpress") { assert.ok(JSON.parse(init.body).content.includes("<img")); return response({ URL: "https://test.wordpress.com/post" }); }
     if (id === "blogger") return response({ url: "https://test.blogspot.com/post" });
@@ -21,6 +22,7 @@ for (const id of ["dev", "wordpress", "blogger", "telegraph", "telegraph-2", "te
   const result = await publish(id, post, "token", "test"); assert.ok(result.url.startsWith("https://")); assert.ok(requests.some(r => r.init.method === "POST"));
 });
 test("network ambiguity does not become a safe-to-retry failure", async () => { globalThis.fetch = async () => { throw new Error("secret-token network error"); }; await assert.rejects(publish("dev", post, "secret-token", ""), UnknownPublishError); });
+test("API redirects are not followed or treated as safe retries", async () => { let calls = 0; globalThis.fetch = async (_url, init) => { calls++; assert.equal(init.redirect, "manual"); return new Response(null, { status: 307, headers: { Location: "https://example.com/collect" } }); }; await assert.rejects(publish("telegraph", post, "secret-token", ""), UnknownPublishError); assert.equal(calls, 1); });
 test("malformed success URLs require inspection before retrying", () => { assert.throws(() => publicUrl("bad-url"), UnknownPublishError); });
 test("Tumblr accepted post stays uncertain if URL lookup fails", async () => { globalThis.fetch = async (url, init) => init.method === "POST" ? response({ response: { id: "123" } }) : Response.json({}, { status: 403 }); await assert.rejects(publish("tumblr", post, "token", "blog"), UnknownPublishError); });
 test("authentication errors never echo credential text", async () => { globalThis.fetch = async () => Response.json({ error: "secret-token" }, { status: 401 }); await assert.rejects(publish("dev", post, "secret-token", ""), e => !e.message.includes("secret-token") && e.message.includes("Authentication")); });
@@ -32,6 +34,7 @@ for (const id of ["github", "gitlab", "codeberg", "netlify", "vercel", "neocitie
   const c = { repo: "owner/pages", branch: "main", site: "site1", project: "project1", account: "account1", region: "fra", url: id === "render" ? "https://demo.onrender.com" : id === "appwrite" ? "https://demo.appwrite.network" : `https://demo.${id === "codeberg" ? "codeberg.page" : id === "gitlab" ? "gitlab.io" : "github.io"}` };
   globalThis.fetch = async (url, init = {}) => {
     url = String(url); seen.push({ url, init });
+    assert.equal(init.redirect, "manual");
     if (url.includes("api.github.com")) { if (url.includes("/ref/heads/")) return response({ object: { sha: "old" } }); if (url.endsWith("/commits/old")) return response({ tree: { sha: "base" } }); if (url.endsWith("/trees")) return response({ sha: "tree" }); return response({ sha: "commit" }); }
     if (id === "gitlab") return response(url.includes("/tree?") ? [] : { id: "commit" });
     if (id === "codeberg") return response(init.method === "GET" ? [] : { commit: { sha: "commit" } });
