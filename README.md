@@ -35,3 +35,5 @@ npm run package:source
 ```
 
 The last command writes `outputs/bulkpublisher-source.zip`. This repository includes the Sites/Vinext runtime integration. Local/VPS operation uses a loopback Wrangler runtime with persistent local D1/SQLite; the hosted version uses managed D1. Both use the same publishing adapters.
+
+Plain HTTP/HTTPS addresses become clickable in previews and published article HTML. For an already published Telegraph article, select its accounts and use **Update selected Telegra.ph pages** to apply text/media changes while keeping the saved URLs.

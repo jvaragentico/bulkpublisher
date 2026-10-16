@@ -1,12 +1,37 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { publish, validatePublish, markdownToHtml, UnknownPublishError, publicUrl } from "../lib/publish.ts";
+import { publish, validatePublish, markdownToHtml, UnknownPublishError, publicUrl, updateTelegraph } from "../lib/publish.ts";
 import { deployHost, allowedHostUrl, verifyHost } from "../lib/host-publish.ts";
 import { siteFiles } from "../lib/site-files.ts";
 const post = { title: "Test title", body: "## Heading\n\n**Bold** and a [link](https://example.com).\n\n![Photo](https://example.com/photo.jpg)", excerpt: "Summary", keywords: '["Web Design","tests","Tests","a","b","c"]', coverUrl: "", videoUrl: "", canonicalUrl: "https://example.com/original" };
 const realFetch = globalThis.fetch;
 test.afterEach(() => { globalThis.fetch = realFetch; });
 const response = data => Response.json(data);
+
+test("plain addresses become links in paragraphs, headings and emphasis without swallowing punctuation", () => {
+  const html = markdownToHtml('## Official https://example.com/start\n\nVisit https://example.com/path?q=1&x=2. (https://example.com/docs).\n\n**https://example.com/bold**\n\n`https://example.com/code`');
+  assert.match(html, /href="https:\/\/example.com\/start"/);
+  assert.match(html, /href="https:\/\/example.com\/path\?q=1&amp;x=2"/);
+  assert.match(html, /href="https:\/\/example.com\/docs"/);
+  assert.match(html, /<strong><a href="https:\/\/example.com\/bold">/);
+  assert.match(html, /<code>https:\/\/example.com\/code<\/code>/);
+  assert.ok(!html.includes('href="https://example.com/code"'));
+});
+test("Markdown links and photos retain their destinations while unsafe links stay inert", () => {
+  const html = markdownToHtml('[Launch](https://example.com/app)\n\n![Workflow](https://example.com/picture.png)\n\n[x](javascript:alert(1))');
+  assert.match(html, /<a href="https:\/\/example.com\/app">Launch<\/a>/);
+  assert.match(html, /<img src="https:\/\/example.com\/picture.png">/);
+  assert.ok(!html.includes('href="javascript:'));
+});
+test("updating an owned Telegraph page uses editPage and preserves its URL", async () => {
+  const url = 'https://telegra.ph/Existing-10-16'; let seen;
+  globalThis.fetch = async (endpoint, init) => { seen = { endpoint, body: JSON.parse(init.body) }; return response({ ok: true, result: { url } }); };
+  assert.equal((await updateTelegraph({ ...post, body: 'Visit https://example.com\n\n![Photo](https://example.com/picture.png)' }, 'token', url)).url, url);
+  assert.equal(seen.endpoint, 'https://api.telegra.ph/editPage/Existing-10-16');
+  assert.equal(seen.body.access_token, 'token');
+  assert.ok(JSON.stringify(seen.body.content).includes('"tag":"a"'));
+  await assert.rejects(updateTelegraph(post, 'token', 'https://example.com/Existing'), /Invalid saved/);
+});
 test("unsafe HTML is escaped while HTTPS photos and formatting are preserved", () => { const html = markdownToHtml('<script>alert(1)</script>\n\n![x](https://example.com/a.jpg)\n\n[x](javascript:alert(1))'); assert.ok(!html.includes("<script>")); assert.ok(html.includes('<img src="https://example.com/a.jpg">')); assert.ok(!html.includes('href="javascript:')); });
 test("publishing validates credentials and DEV front matter before network writes", () => { assert.throws(() => validatePublish("dev", post, "", ""), /token/); assert.throws(() => validatePublish("wordpress", post, "token", ""), /site/); assert.throws(() => validatePublish("dev", { ...post, body: "---\ntitle: Override\n---" }, "token", ""), /front matter/); });
 for (const id of ["dev", "wordpress", "blogger", "telegraph", "telegraph-2", "telegraph-3", "telegraph-4", "tumblr"]) test(`${id} constructs the publishing request and extracts the mocked public URL`, async () => {

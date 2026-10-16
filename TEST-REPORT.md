@@ -2,7 +2,7 @@
 
 ## Passed
 
-- 38 automated tests: DOCX/ODT imports, upload validation, mocked photo upload, HTML escaping, eight article destination request formats, ten host API request formats, uncertain publishing outcomes, credential redaction and exact-snapshot public verification.
+- 41 automated tests: DOCX/ODT imports, upload validation, mocked photo upload, HTML escaping, eight article destination request formats, ten host API request formats, uncertain publishing outcomes, credential redaction and exact-snapshot public verification.
 - TypeScript type check: `node node_modules/typescript/bin/tsc --noEmit --pretty false`.
 - Production build and documented local setup: `npm run setup:local`. All three database migrations apply to a fresh database; subsequent setup reports no pending migrations.
 - Local HTTP end-to-end check: unauthenticated access, wrong password, valid admin login, CSRF rejection, invalid article IDs, save/read/delete, missing publishing credentials, unsafe editor URL rejection, generated HTML ZIP, manual publication records and session revocation after logout.
@@ -31,7 +31,7 @@ Only Telegraph was tested with real public publishing. The other four article AP
 
 Twelve article destinations intentionally use a guided editor workflow. They are not automatic API connectors. Browser passwords alone cannot enable automatic publication there. Platform API availability and free tiers may change.
 
-Video URLs are supported; video-file uploads, automatic OAuth token refresh, unattended scheduled runs and automatic deletion/editing of remote posts are not implemented. Imported Office layouts are simplified. Local/VPS operation uses a single-admin loopback Wrangler runtime and local SQLite storage; the supplied VPS guide uses an SSH tunnel. A Linux VPS install was not executed in this Windows environment.
+Video URLs are supported; video-file uploads, automatic OAuth token refresh, unattended scheduled runs and automatic deletion of remote posts and editing on providers other than Telegra.ph are not implemented. Imported Office layouts are simplified. Local/VPS operation uses a single-admin loopback Wrangler runtime and local SQLite storage; the supplied VPS guide uses an SSH tunnel. A Linux VPS install was not executed in this Windows environment.
 
 The source ZIP excludes credentials, local database state, node_modules, Git history and build caches. Dependencies are restored using `npm ci` and the included lockfile.
 
@@ -48,3 +48,9 @@ Live verification pages:
 2. https://telegra.ph/Bulk-Publisher-Studio--four-account-connection-test-10-16-2
 3. https://telegra.ph/Bulk-Publisher-Studio--four-account-connection-test-10-16-3
 4. https://telegra.ph/Bulk-Publisher-Studio--four-account-connection-test-10-16-4
+
+## Hyperlinks and article media
+
+- Bare HTTP/HTTPS addresses now become clickable links, including in headings and bold/emphasized text. Markdown links/photos are preserved; inline code stays literal.
+- Added two original conceptual illustrations for the ArbAI article. They are diagrams, not product screenshots or performance evidence.
+- Added a separate Telegra.ph update action using editPage; updating existing publications preserves their URLs and guards concurrent requests.

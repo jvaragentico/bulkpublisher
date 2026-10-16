@@ -10,17 +10,35 @@ export function publicUrl(value: unknown) {
   if (url.protocol !== "https:") throw new UnknownPublishError("Unexpected destination URL. Check its dashboard.");
   return url.toString();
 }
-function inline(text: string): ContentNode[] {
+function autoLinks(text: string): ContentNode[] {
   const nodes: ContentNode[] = []; let cursor = 0;
-  const pattern = /!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)|\[([^\]]+)\]\((https:\/\/[^\s)]+)\)|\*\*(.+?)\*\*|\*([^*]+)\*|\x60([^\x60]+)\x60/g;
-  for (const match of text.matchAll(pattern)) {
+  for (const match of text.matchAll(/https?:\/\/[^\s<>"']+/g)) {
+    let address = match[0].replace(/[.,!?;:]+$/, "");
+    for (const [open, close] of [["(", ")"], ["[", "]"], ["{", "}"]]) {
+      while (address.endsWith(close) && address.split(close).length > address.split(open).length) address = address.slice(0, -1);
+    }
     nodes.push(text.slice(cursor, match.index));
-    if (match[2]) nodes.push({ tag: "img", attrs: { src: match[2] } });
-    else if (match[4]) nodes.push({ tag: "a", attrs: { href: match[4] }, children: [match[3]] });
-    else nodes.push({ tag: match[5] ? "strong" : match[6] ? "em" : "code", children: [match[5] || match[6] || match[7]] });
+    try {
+      const url = new URL(address);
+      if (url.username || url.password) throw new Error();
+      nodes.push({ tag: "a", attrs: { href: url.toString() }, children: [address] });
+    } catch { nodes.push(address); }
+    nodes.push(match[0].slice(address.length));
     cursor = match.index! + match[0].length;
   }
   nodes.push(text.slice(cursor)); return nodes.filter(n => n !== "");
+}
+function inline(text: string): ContentNode[] {
+  const nodes: ContentNode[] = []; let cursor = 0;
+  const pattern = /!\[([^\]]*)\]\((https:\/\/[^\s)]+)\)|\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*(.+?)\*\*|\*([^*]+)\*|\x60([^\x60]+)\x60/g;
+  for (const match of text.matchAll(pattern)) {
+    nodes.push(...autoLinks(text.slice(cursor, match.index)));
+    if (match[2]) nodes.push({ tag: "img", attrs: { src: match[2] } });
+    else if (match[4]) nodes.push({ tag: "a", attrs: { href: match[4] }, children: [match[3]] });
+    else nodes.push({ tag: match[5] ? "strong" : match[6] ? "em" : "code", children: match[7] ? [match[7]] : inline(match[5] || match[6]) });
+    cursor = match.index! + match[0].length;
+  }
+  nodes.push(...autoLinks(text.slice(cursor))); return nodes.filter(n => n !== "");
 }
 export function markdownNodes(markdown: string): ContentNode[] {
   const nodes: ContentNode[] = [];
@@ -68,6 +86,15 @@ export function validatePublish(id: string, post: Post, token: string, siteId: s
   if (!post.body.trim()) throw new Error("Add article text first.");
   if (id === "dev" && /^\s*---\s*\n/.test(post.body)) throw new Error("Remove YAML front matter; use the title, tags and media fields.");
   if (isTelegraphAccount(id) && new TextEncoder().encode(JSON.stringify(postNodes(post))).length > 64000) throw new Error("Telegraph content exceeds 64 KB. Shorten the article.");
+}
+export async function updateTelegraph(post: Post, token: string, existingUrl: string) {
+  validatePublish("telegraph", post, token, "");
+  const url = new URL(existingUrl);
+  if (url.protocol !== "https:" || url.hostname !== "telegra.ph" || url.username || url.password || url.port || !/^\/[A-Za-z0-9_-]+$/.test(url.pathname)) throw new Error("Invalid saved Telegraph page URL.");
+  const data = await remoteJson("https://api.telegra.ph/editPage" + url.pathname, {}, { access_token: token, title: post.title, author_name: "Bulk Publisher Studio", content: postNodes(post), return_content: true });
+  const returned = publicUrl(data.result?.url);
+  if (returned !== existingUrl) throw new UnknownPublishError("Unexpected page URL after update. Inspect the existing page.");
+  return { url: returned, views: Number(data.result?.views) || 0 };
 }
 export async function publish(id: string, post: Post, token: string, siteId: string) {
   validatePublish(id, post, token, siteId);
