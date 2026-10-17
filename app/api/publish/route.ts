@@ -4,7 +4,8 @@ import { articles, deliveries } from "@/db/schema";
 import { db, fail, json, readJson, userId } from "@/lib/api";
 import { platformById } from "@/lib/catalog";
 import { publish, validatePublish, UnknownPublishError, updateTelegraph } from "@/lib/publish";
-import { resolvePublishingToken, isTelegraphAccount } from "@/lib/telegraph-accounts";
+import { isTelegraphAccount } from "@/lib/telegraph-accounts";
+import { resolveApiToken, workspaceSiteId } from "@/lib/workspace-connections";
 import { isLegacyRedirectFailure } from "@/lib/legacy-delivery";
 
 export async function POST(request: Request) {
@@ -18,8 +19,8 @@ export async function POST(request: Request) {
     platformId = String(input.platformId ?? "");
     const platform = platformById[platformId];
     if (!platform || platform.method !== "api") return fail("This destination uses guided publishing.");
-    const token = resolvePublishingToken(platformId, input.token, env);
-    const siteId = String(input.siteId ?? "").trim();
+    const token = resolveApiToken(platformId, input.token, env);
+    const siteId = String(input.siteId || workspaceSiteId(platformId, env)).trim();
     const database = db();
     const post = await database.select().from(articles).where(and(eq(articles.id, articleId), eq(articles.userId, user))).limit(1);
     if (!post[0]) return fail("Article not found.", 404);

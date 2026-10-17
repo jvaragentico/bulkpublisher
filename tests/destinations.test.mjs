@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { platforms } from "../lib/catalog.ts";
 import { setup } from "../lib/platform-setup.ts";
 import { telegraphAccountIds, isTelegraphAccount, resolvePublishingToken } from "../lib/telegraph-accounts.ts";
+import { articleApiIds, resolveApiToken, workspaceApiToken, workspaceSiteId } from "../lib/workspace-connections.ts";
 import { isLegacyRedirectFailure, legacyRedirectCutoff } from "../lib/legacy-delivery.ts";
 
 test("each workspace account resolves only its own server secret", () => {
@@ -11,6 +12,17 @@ test("each workspace account resolves only its own server secret", () => {
   assert.equal(resolvePublishingToken("telegraph-3", "override", secrets), "override");
   assert.equal(resolvePublishingToken("dev", "", secrets), "");
   assert.equal(resolvePublishingToken("telegraph-4", "", { TELEGRAPH_TOKEN: "one" }), "");
+});
+test("article API connections use only their own workspace credential and target", () => {
+  const secrets = { DEV_TOKEN: " dev-key ", WORDPRESS_TOKEN: "wp-key", WORDPRESS_SITE_ID: "site.wordpress.com", BLOGGER_TOKEN: "blogger-key", BLOGGER_BLOG_ID: "12345", TUMBLR_TOKEN: "tumblr-key", TUMBLR_BLOG_NAME: "blogname", TELEGRAPH_TOKEN: "telegraph-key" };
+  assert.equal(articleApiIds.length, 8);
+  for (const [id, token] of Object.entries({ dev: "dev-key", wordpress: "wp-key", blogger: "blogger-key", tumblr: "tumblr-key", telegraph: "telegraph-key" })) assert.equal(workspaceApiToken(id, secrets), token);
+  for (const [id, target] of Object.entries({ wordpress: "site.wordpress.com", blogger: "12345", tumblr: "blogname" })) assert.equal(workspaceSiteId(id, secrets), target);
+  assert.equal(resolveApiToken("dev", "override", secrets), "override");
+  assert.equal(resolveApiToken("dev", "  ", secrets), "dev-key");
+  assert.equal(workspaceApiToken("telegraph-2", secrets), "");
+  assert.equal(workspaceApiToken("unknown", secrets), "");
+  assert.equal(workspaceSiteId("dev", secrets), "");
 });
 test("only the known pre-fix runtime failure can be released for retry", () => {
   const row = { platformId: "telegraph-2", state: "unknown", error: "Network response interrupted. Check the platform before retrying to avoid duplicates.", updatedAt: legacyRedirectCutoff };

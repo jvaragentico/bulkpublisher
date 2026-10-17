@@ -1,4 +1,6 @@
 import { and, eq } from "drizzle-orm";
+import { env } from "cloudflare:workers";
+import { resolveApiToken } from "@/lib/workspace-connections";
 import { deliveries } from "@/db/schema";
 import { db, fail, json, readJson, userId } from "@/lib/api";
 
@@ -7,7 +9,7 @@ export async function POST(request: Request) {
   if (!user) return fail("Sign in to refresh views.", 401);
   try {
     const input = await readJson(request);
-    const token = String(input.token ?? "").trim();
+    const token = resolveApiToken("dev", input.token, env);
     if (!token) return fail("Enter your DEV API key to refresh views.");
     const database = db();
     const own = await database.select().from(deliveries).where(and(eq(deliveries.userId, user), eq(deliveries.platformId, "dev")));

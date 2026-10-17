@@ -3,7 +3,7 @@
 ## On your own computer
 
 1. Install Node.js 24 or newer (22.18+ also works), with npm.
-2. Extract `bulkpublisher-source.zip`. Open a terminal inside the extracted `bulkpublisher` folder, where `package.json` is.
+2. Extract `bulkpublisher-source.zip` into a new folder. Open a terminal in that folder, where `package.json` and `START-WINDOWS.cmd` are. On Windows you can double-click `START-WINDOWS.cmd` instead of typing the commands below.
 3. Run these commands, one at a time:
 
 ```sh
@@ -71,7 +71,7 @@ Save as `/etc/systemd/system/bulkpublisher.service`, then run `sudo systemctl da
 
 1. Open **Compose**. Type an article or import DOCX (Word), ODT (LibreOffice), Markdown or text. Old `.doc` files must be saved as `.docx` first.
 2. Review the import. Headings, paragraphs, links, Word bold/italic and raster images are supported; complex layouts/tables are simplified. Documents are limited to 10 MB compressed / 30 MB expanded and 100,000 text characters.
-3. For photo uploads, open **Photo settings**. Create a free Cloudinary account, copy your cloud name, and create an **unsigned upload preset** restricted to raster photos and a 5 MB size limit. Paste the cloud name and preset. Photos are public once uploaded. You can also paste existing public HTTPS image URLs.
+3. For photo uploads, open **Photo settings**. Create a free Cloudinary account, copy your cloud name, and create an **unsigned upload preset** restricted to JPG, PNG, WebP and GIF. Paste the cloud name and preset. The app limits each photo to 5 MB; Cloudinary does not offer a per-preset file size limit. Photos are public once uploaded. You can also paste existing public HTTPS image URLs. The hosted dashboard already has these settings; local copies need their own values.
 4. Add title, description, tags, optional canonical URL and video link. Preview, then Save article.
 5. Open **Platforms**. Each destination lists its exact account and permission requirements. Add tokens only for API destinations. Never paste an account password into a token field.
 6. Back in Compose, choose destinations and Publish. This sends real public posts. Keep the tab open until the queue finishes.
@@ -85,7 +85,7 @@ Twelve use their own editor: Medium, Hashnode, Substack, LinkedIn Articles, beeh
 
 Medium does not issue new API tokens. Hashnode and beehiiv publishing APIs require paid access. The app keeps their free editor workflows. HubPages is no longer offered. HackMD and the GitHub/GitLab article entries were replaced by three additional Telegra.ph account slots. Vocal requires account setup, Stripe connection and editorial approval.
 
-The hosted app has a workspace Telegraph account configured. For a local copy, open Platforms → Telegra.ph — Account 1 → Connect → Create a free Telegraph account → Save connection. Repeat separately for Accounts 2, 3 and 4 with different account tokens. Keep the generated token privately if you want to reuse that account. You can optionally add `TELEGRAPH_TOKEN="your-token"` to `.dev.vars` and restart to use it as the local workspace account.
+The hosted app has four separate Telegra.ph accounts and DEV configured. For a local copy, open Platforms → Telegra.ph — Account 1 → Connect → Create a free Telegraph account → Save connection. Repeat separately for Accounts 2, 3 and 4 with different account tokens. Keep the generated token privately if you want to reuse that account. You can optionally add `TELEGRAPH_TOKEN="your-token"` and `DEV_TOKEN="your-dev-key"` to `.dev.vars` and restart to use them across tabs. Do not put these values in the source ZIP or GitHub.
 
 API tokens entered in the GUI stay in browser session storage. They are not written to the article database. OAuth refresh is not automatic: replace expired Google/Tumblr/WordPress tokens. This is an interactive bulk publisher; it does not run an unattended schedule after the browser closes.
 
