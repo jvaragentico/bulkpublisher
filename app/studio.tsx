@@ -69,16 +69,24 @@ export default function Studio() {
       if (file.size > 100_000) throw new Error("Credential file is too large.");
       const parsed = JSON.parse(await file.text()) as { format?: string; connections?: Record<string, { token?: string; siteId?: string }> };
       if (parsed.format !== "bulkpublisher-credentials-v1" || !parsed.connections || typeof parsed.connections !== "object") throw new Error("Choose a Bulk Publisher credentials JSON file.");
-      let count = 0;
+      let tokenCount = 0;
+      let targetCount = 0;
       for (const platform of platforms.filter(item => item.method === "api")) {
         const entry = parsed.connections[platform.id];
-        if (!entry || typeof entry.token !== "string" || !entry.token.trim()) continue;
-        sessionStorage.setItem(`bp-token-${platform.id}`, entry.token.trim());
-        if (typeof entry.siteId === "string" && entry.siteId.trim()) sessionStorage.setItem(`bp-site-${platform.id}`, entry.siteId.trim());
-        count++;
+        if (!entry || typeof entry !== "object") continue;
+        if (typeof entry.siteId === "string" && entry.siteId.trim()) {
+          sessionStorage.setItem(`bp-site-${platform.id}`, entry.siteId.trim());
+          targetCount++;
+        }
+        if (typeof entry.token === "string" && entry.token.trim()) {
+          sessionStorage.setItem(`bp-token-${platform.id}`, entry.token.trim());
+          tokenCount++;
+        }
       }
       setSessionTokens(platforms.filter(item => item.method === "api" && !!sessionStorage.getItem(`bp-token-${item.id}`)).map(item => item.id));
-      setMessage(`${count} credential${count === 1 ? "" : "s"} imported into this tab only. Use Connect to inspect or test each one.`);
+      setMessage(tokenCount
+        ? `${tokenCount} publishing token${tokenCount === 1 ? "" : "s"} and ${targetCount} site target${targetCount === 1 ? "" : "s"} imported into this tab. Use Connect to test each one. Hosted workspace connections are separate.`
+        : `No publishing tokens are filled in this file. ${targetCount} site target${targetCount === 1 ? "" : "s"} imported. Fill the token fields or use a platform's Connect flow. Server settings and hosted workspace connections do not count as file imports.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not read credential file.");
     }

@@ -4,6 +4,8 @@ These are **fake examples** showing the shape of a value. They will not authenti
 
 In `CREDENTIALS.local.json`, `token` means the value in the **API key / OAuth access token** box, and `siteId` means the value in the **site / account / target** box. Leave unused entries empty. The dashboard never loads this file automatically.
 
+If importing reports **zero publishing tokens**, the `connections` entries in your selected file have blank `token` values. A site address by itself is not a publishing credential. The hosted dashboard's server-side Telegra.ph/DEV connections and WordPress OAuth app settings are separate and are not exported into this file. The WordPress app's Client ID and Client Secret are **not** a WordPress publishing access token; use **Connect with WordPress.com** and approve access for your site.
+
 ```json
 {
   "format": "bulkpublisher-credentials-v1",
