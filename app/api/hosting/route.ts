@@ -18,10 +18,6 @@ export async function POST(request: Request) {
       if (live) await database.update(hostJobs).set({ state: "published", error: "", updatedAt: new Date().toISOString() }).where(and(eq(hostJobs.id, id), eq(hostJobs.runId, existing.runId)));
       return json({ live, url: existing.url, message: live ? "The exact uploaded snapshot is publicly accessible." : "The current snapshot is not public yet. Check deployment logs, access settings and the publishing branch." });
     }
-    if (input.action === "reset" && input.inspected === true) {
-      await database.update(hostJobs).set({ state: "failed", error: "Retry unlocked after checking host dashboard." }).where(eq(hostJobs.id, id));
-      return json({ ok: true });
-    }
     if (input.overwriteApproved !== true) return fail("Confirm that this is a dedicated site whose content can be replaced.");
     if (existing && ["uploading", "pending", "unknown"].includes(existing.state)) return fail("A deployment is pending or uncertain. Check it before deploying again.", 409);
     const config = input.config && typeof input.config === "object" && !Array.isArray(input.config) ? Object.fromEntries(Object.entries(input.config).map(([k,v]) => [k, String(v).trim()])) : {};
@@ -46,4 +42,16 @@ export async function POST(request: Request) {
     if (claimedId) await db().update(hostJobs).set({ state: "unknown", error: message.slice(0, 400) }).where(eq(hostJobs.id, claimedId));
     return fail(message, 400);
   }
+}
+
+export async function DELETE(request: Request) {
+  const user = await userId(request); if (!user) return fail("Sign in first.", 401);
+  try {
+    const input = await readJson(request);
+    const provider = String(input.provider || "");
+    if (!hostById[provider]) return fail("Unknown host.");
+    if (input.inspected !== true) return fail("Inspect the host dashboard first. Removing this local record will not delete the hosted website.");
+    await db().delete(hostJobs).where(and(eq(hostJobs.id, `${user}:${provider}`), eq(hostJobs.userId, user)));
+    return json({ ok: true, message: "Deployment record removed. The hosted website remains online until you delete it at the host." });
+  } catch (error) { return fail(error instanceof Error ? error.message : "Could not remove deployment record."); }
 }

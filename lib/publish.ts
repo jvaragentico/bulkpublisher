@@ -1,4 +1,5 @@
 import { isTelegraphAccount } from "./telegraph-accounts.ts";
+import { isExtraApi, publishExtra, validateExtra } from "./extra-publish.ts";
 export type Post = { title: string; excerpt: string; body: string; keywords: string; coverUrl: string; videoUrl: string; canonicalUrl: string };
 export type ContentNode = string | { tag: string; attrs?: Record<string, string>; children?: ContentNode[] };
 export class UnknownPublishError extends Error {}
@@ -76,10 +77,11 @@ export async function remoteJson(url: string, headers: Record<string, string>, b
   let data: any;
   try { data = await response.json(); } catch { throw new UnknownPublishError("Unreadable platform response. Check its dashboard."); }
   if (!response.ok) throw new Error([401,403].includes(response.status) ? "Authentication or permission rejected (" + response.status + "). Check token, scope and ownership." : response.status === 429 ? "Rate limit reached. Wait before retrying." : "Platform rejected the request (" + response.status + "). Check content limits and destination settings.");
-  if (data.ok === false) throw new Error("Telegraph rejected the request: " + String(data.error).replace(/[^A-Z0-9_ -]/gi, "").slice(0, 80));
+  if (data.ok === false) throw new Error("Platform rejected the request: " + String(data.error || data.description || "unknown error").replace(/[^A-Z0-9_ -]/gi, "").slice(0, 80));
   return data;
 }
 export function validatePublish(id: string, post: Post, token: string, siteId: string) {
+  if (isExtraApi(id)) return validateExtra(id, post, token, siteId);
   if (!["dev", "wordpress", "blogger", "tumblr"].includes(id) && !isTelegraphAccount(id)) throw new Error("Use this destination's guided editor workflow.");
   if (!token.trim()) throw new Error("Add an access token or API key in Platforms.");
   if (["wordpress", "blogger", "tumblr"].includes(id) && !siteId.trim()) throw new Error("Add the target site or blog ID.");
@@ -96,8 +98,9 @@ export async function updateTelegraph(post: Post, token: string, existingUrl: st
   if (returned !== existingUrl) throw new UnknownPublishError("Unexpected page URL after update. Inspect the existing page.");
   return { url: returned, views: Number(data.result?.views) || 0 };
 }
-export async function publish(id: string, post: Post, token: string, siteId: string) {
+export async function publish(id: string, post: Post, token: string, siteId: string, requestId = crypto.randomUUID()) {
   validatePublish(id, post, token, siteId);
+  if (isExtraApi(id)) return publishExtra(id, post, token, siteId, requestId);
   const tags = JSON.parse(post.keywords || "[]") as string[];
   const auth = { Authorization: "Bearer " + token };
   if (id === "dev") {

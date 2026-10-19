@@ -8,6 +8,9 @@ declare namespace Cloudflare {
     TELEGRAPH_TOKEN_4?: string;
     DEV_TOKEN?: string;
     WORDPRESS_TOKEN?: string;
+    WORDPRESS_CLIENT_ID?: string;
+    WORDPRESS_CLIENT_SECRET?: string;
+    WORDPRESS_REDIRECT_URI?: string;
     WORDPRESS_SITE_ID?: string;
     BLOGGER_TOKEN?: string;
     BLOGGER_BLOG_ID?: string;

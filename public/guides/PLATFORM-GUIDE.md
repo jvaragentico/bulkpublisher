@@ -10,7 +10,13 @@ There are four separate Telegra.ph account slots: Account 1 plus the three repla
 
 Do not send account passwords to us or paste them into token fields. Sign in directly on each platform. Paste only API keys/access tokens issued for your own account.
 
-## The 20 article destination slots (17 services)
+## Private credentials file
+
+Copy `CREDENTIALS.example.json` to `CREDENTIALS.local.json` in your extracted folder. Fill only the `token` and `siteId` values you have. Keep that file on your own computer. It is ignored by Git and omitted from every source ZIP. In the dashboard, open **Platforms → Import credentials** and select it. The app reads the selected file in your browser and keeps its nonempty tokens and targets in that tab's session only. Nothing loads from the file at startup. If you close the tab, import it again. Server secrets configured in the hosted environment are separate and cannot be exported back from the dashboard.
+
+See [fake examples showing the exact format for every token and target box](CREDENTIAL-FORMATS.md). Never substitute the example strings for real keys.
+
+## The 34 destination slots (31 services)
 
 | Platform | What you need to provide or set up | Publishing mode / limits |
 | --- | --- | --- |
@@ -34,6 +40,24 @@ Do not send account passwords to us or paste them into token fields. Sign in dir
 | [Telegra.ph — Account 3](https://telegra.ph/api) | This slot's own Telegraph access token. No username/password or site ID. | **Automatic API**. This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit. |
 | [Telegra.ph — Account 4](https://telegra.ph/api) | This slot's own Telegraph access token. No username/password or site ID. | **Automatic API**. This is a separate account connection on the same Telegra.ph service. Keep different account tokens in different slots. Pages are public; content must fit Telegraph's 64 KB limit. |
 | [Notion Sites](https://www.notion.com) | No token. A page you can edit and permission to publish it. | **Guided editor — manual final step**. Public sharing must be completed in Notion. A workspace page address alone does not make a page public. |
+| [Mastodon](https://docs.joinmastodon.org/methods/statuses/) | Instance domain and access token with `write:statuses`. | **Automatic API**. Public short status; add a canonical link for the article. |
+| [Bluesky](https://docs.bsky.app/docs/tutorials/creating-a-post) | Your handle and an app password. | **Automatic API**. Public 300-character post; add a canonical link. |
+| [Telegram channel](https://core.telegram.org/bots/api#sendmessage) | Bot token and public `@channel` username; make the bot channel administrator with post access. | **Automatic API**. Public channel message. |
+| [Discord webhook](https://discord.com/developers/docs/resources/webhook#execute-webhook) | Full webhook URL from your chosen channel. | **Automatic API**. Message link may require readers to join the server. |
+| [GitHub Gist](https://docs.github.com/en/rest/gists/gists#create-a-gist) | GitHub fine-grained token with Gists write permission. | **Automatic API**. Public Markdown document. |
+| [GitLab snippet](https://docs.gitlab.com/api/snippets/) | GitLab personal access token with API scope. | **Automatic API**. Public personal Markdown snippet. |
+| [Bitbucket snippet](https://developer.atlassian.com/cloud/bitbucket/rest/api-group-snippets/) | Workspace slug and Bitbucket API token with snippet write permission. | **Automatic API**. Public Markdown snippet. |
+| [Matrix public room](https://spec.matrix.org/latest/client-server-api/#put_matrixclientv3roomsroomidsendeventtypetxnid) | Homeserver domain, room ID, and access token for a joined account. Enter target as `https://server.example | !roomid:server.example`. | **Automatic API**. Public room event; Matrix redaction is used for remote delete. |
+| [Misskey](https://misskey-hub.net/en/docs/for-developers/api/) | Instance domain and token with note create/delete access. | **Automatic API**. Public note; add a canonical link. |
+| [Lemmy](https://join-lemmy.org/docs/contributors/04-api.html) | Instance domain, numeric community ID and account JWT. Enter target as `https://instance.example | 123`. | **Automatic API**. Community post; API version and moderation rules depend on the instance. |
+| [WordPress (self-hosted)](https://developer.wordpress.org/rest-api/reference/posts/) | HTTPS site URL and `username:application-password` generated in Users → Profile. | **Automatic API**. Full HTML article on your own WordPress site. Free software; hosting may cost money. |
+| [WriteFreely](https://developers.write.as/docs/api/) | Instance URL, collection alias and API token. | **Automatic API**. Full Markdown article in your collection. Community or self-hosted instance required. |
+| [Ghost (self-hosted)](https://ghost.org/docs/admin-api/) | HTTPS site URL and Ghost Admin API integration key. | **Automatic API**. Full HTML article. Free software; hosting may cost money. |
+| [Paragraph](https://docs.paragraph.com/developers) | Publication API key from Settings → API keys; no site ID. | **Automatic API**. Full Markdown article. Free plan has limited API access; the API is in alpha. This connector does not email subscribers. |
+
+The ten added destinations are public social posts, channel messages, room events or document pages. They are different services and count as automatic publishing, but they are not ten full-length blogs. Short formats use your description or a clipped extract plus canonical link. Check the preview and each platform's rules before publishing.
+
+Of the extra names you suggested, **Paragraph** is now an automatic full-article destination. Its [official API](https://docs.paragraph.com/developers/api-reference/posts/create-a-new-post) accepts Markdown and the [current free plan](https://paragraph.com/pricing) lists API access. Hashnode, Mirror, Fountain, Fileverse, Zora, Sigle, Ecency, Cent, Nuance, Readl, directories, guest-post sites and cross-posting apps are not marked automatic here without a verified direct publishing API and a working connector. X and Reddit publish social/community posts, while LinkedIn's post API is separate from its long-form Articles editor; none of those three is connected yet. Do not paste their passwords or keys into another platform's token field.
 
 ## Guided editor: exactly what you do
 
@@ -68,13 +92,12 @@ Guided editor = you do the final publishing in Medium. No API key or account pas
 
 **What to enter here:** WordPress.com OAuth access_token + site ID or site domain.
 
-1. Sign in to WordPress.com and create/select the free site you control. You can enter its domain (for example, yoursite.wordpress.com), so finding a numeric ID is optional.
-2. Open developer.wordpress.com/apps/ → Create New Application. Register an app with a callback URL you control; keep Client Secret private.
-3. Complete WordPress.com's documented OAuth authorization flow for your site, then exchange the returned authorization code at https://public-api.wordpress.com/oauth2/token.
-4. Copy the response's access_token. In this dashboard: Platforms → WordPress.com → Connect → paste it in API key / OAuth access token; enter the site domain in WordPress.com site ID or domain.
-5. Press Test connection, then Save connection. This app accepts a token; it does not currently run the WordPress OAuth authorization flow for you.
+1. Sign in to WordPress.com and create/select the free site you control. Enter its domain (for example, `yoursite.wordpress.com`) in Platforms → WordPress.com → Connect.
+2. The developer OAuth application **Bulk Publisher Studio** was created on WordPress.com. Creating it gives a Client ID and Client Secret, but does not grant your site access or publish anything. Its redirect must match this installation's `/api/wordpress-oauth/callback` address, and `WORDPRESS_CLIENT_ID`, `WORDPRESS_CLIENT_SECRET` and `WORDPRESS_REDIRECT_URI` must be server settings.
+3. Press **Connect with WordPress.com**. Review WordPress.com's access request for your site and approve it if you want this dashboard to post. The callback places the access token in this browser tab only.
+4. Reopen Connect and press **Test connection**. You can also paste an existing OAuth access token manually. A developer Client ID, Client Secret, WordPress password or application password is not the publishing access token.
 
-Developer setup is required to obtain the OAuth token. A Client ID, Client Secret, WordPress password or application password is not the access_token required by this connector.
+If you install a separate local or Vercel copy, create your own OAuth app with that installation's callback URL. Tokens expire; reconnect when WordPress rejects an expired token. Publishing to the site remains a separate action in Compose.
 
 [Official platform / setup documentation](https://developer.wordpress.com/docs/api/getting-started/)
 

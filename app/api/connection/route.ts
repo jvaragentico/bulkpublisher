@@ -4,6 +4,7 @@ import { remoteJson } from "@/lib/publish";
 import { isTelegraphAccount } from "@/lib/telegraph-accounts";
 import { resolveApiToken, workspaceSiteId } from "@/lib/workspace-connections";
 import { platformById } from "@/lib/catalog";
+import { isExtraApi, testExtra } from "@/lib/extra-publish";
 export async function POST(request: Request) {
   if (!await userId(request)) return fail("Sign in first.", 401);
   try {
@@ -17,7 +18,8 @@ export async function POST(request: Request) {
     if (!token) return fail("Add a token before testing.");
     const siteId = String(input.siteId || workspaceSiteId(id, env));
     const bearer = { Authorization: `Bearer ${token}` };
-    if (id === "dev") await remoteJson("https://dev.to/api/users/me", { "api-key": token });
+    if (isExtraApi(id)) await testExtra(id, token, siteId);
+    else if (id === "dev") await remoteJson("https://dev.to/api/users/me", { "api-key": token });
     else if (id === "wordpress") {
       const data = await remoteJson("https://public-api.wordpress.com/rest/v1.2/me/sites", bearer);
       const wanted = siteId.toLowerCase();

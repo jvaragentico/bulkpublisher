@@ -30,10 +30,10 @@ test("only the known pre-fix runtime failure can be released for retry", () => {
   for (const change of [{ updatedAt: "2026-10-17T00:00:00Z" }, { updatedAt: "invalid" }, { platformId: "dev" }, { state: "publishing" }, { error: "Platform error 502." }]) assert.equal(isLegacyRedirectFailure({ ...row, ...change }), false);
 });
 test("article directory has the requested replacements and accurate slot counts", () => {
-  assert.equal(platforms.length, 20);
-  assert.equal(new Set(platforms.map(p => p.id)).size, 20);
-  assert.equal(new Set(platforms.map(p => p.url)).size, 17);
-  assert.equal(platforms.filter(p => p.method === "api").length, 8);
+  assert.equal(platforms.length, 34);
+  assert.equal(new Set(platforms.map(p => p.id)).size, 34);
+  assert.equal(new Set(platforms.map(p => p.url)).size, 31);
+  assert.equal(platforms.filter(p => p.method === "api").length, 22);
   assert.equal(platforms.filter(p => p.method === "guided").length, 12);
   assert.ok(!platforms.some(p => ["hackmd", "github", "gitlab"].includes(p.id)));
   assert.deepEqual(platforms.filter(p => isTelegraphAccount(p.id)).map(p => p.id).sort(), [...telegraphAccountIds].sort());

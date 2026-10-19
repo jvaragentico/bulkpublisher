@@ -1,5 +1,14 @@
 # Review and verification — 17 October 2026
 
+## Update — 19 October 2026
+
+- Directory expanded to 34 destination slots across 31 services. Ten new API connectors cover Mastodon, Bluesky, Telegram channels, Discord webhooks, GitHub Gist, GitLab snippets, Bitbucket snippets, Matrix rooms, Misskey and Lemmy. Four more connect full-article WordPress, WriteFreely, Ghost and Paragraph publications. Self-hosting may cost money; Paragraph has limited free-plan API access.
+- 51 in-process tests pass (run the four `tests/*.test.mjs` files separately when the sandbox blocks Node's test-runner subprocesses). These include request/response mocks for the 14 added services and the existing 10 webpage hosts; they do not prove live account authorization. A prior Cloudflare/Sites build passed; the current Vercel build needs a rerun in an environment that permits child processes.
+- Removed the old recovery route. Activity can remove individual local publication records after inspection or clear all publication and deployment history with confirmation. The ten new API services also have remote delete actions. Clearing dashboard history does not take down public posts or websites. Telegraph offers no deletion API.
+- Added WordPress.com OAuth start/callback flow. The developer app has a verified callback URL and server credentials, but the WordPress site has not granted access or been used for a live post.
+- Added `CREDENTIALS.example.json` and explicit dashboard import. The filled `CREDENTIALS.local.json` is ignored and excluded from source ZIPs; imported values stay in the browser tab. Server secrets cannot be recovered from the hosted environment for export.
+- Added native Next/Vercel build, Cloudflare D1 REST bridge, migration script and deployment guide. The build passed. A live Vercel deployment and D1 REST connection have not been tested with a user-owned Vercel/Cloudflare account.
+
 ## Passed
 
 - 41 automated tests: DOCX/ODT imports, upload validation, mocked photo upload, HTML escaping, eight article destination request formats, ten host API request formats, uncertain publishing outcomes, credential redaction and exact-snapshot public verification.

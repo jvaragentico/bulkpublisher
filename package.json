@@ -9,6 +9,8 @@
     "install:ci": "node scripts/install-ci.mjs",
     "dev": "node scripts/run-framework.mjs dev",
     "build": "node scripts/run-framework.mjs build",
+    "build:vercel": "next build --webpack",
+    "db:vercel": "node scripts/setup-vercel-d1.mjs",
     "start": "node scripts/local.mjs serve",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",

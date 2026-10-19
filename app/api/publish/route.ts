@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       if (!claimed.length) return fail("Another request already claimed this publication.", 409);
     }
     try {
-      const result = await publish(platformId, post[0], token, siteId);
+      const result = await publish(platformId, post[0], token, siteId, deliveryId);
       try { await database.update(deliveries).set({ state: "published", url: result.url, views: result.views, publishedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }).where(eq(deliveries.id, deliveryId)); }
       catch { return json({ ok: true, url: result.url, warning: "Published, but the database update failed. Save this URL and record it in Activity. Do not publish again." }); }
       return json({ ok: true, url: result.url });

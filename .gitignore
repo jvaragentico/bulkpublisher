@@ -58,3 +58,4 @@ next-env.d.ts
 /.dev.vars*
 /wrangler.local.json
 /bulkpublisher-source.zip
+/CREDENTIALS.local.json
