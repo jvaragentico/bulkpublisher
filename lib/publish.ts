@@ -108,7 +108,7 @@ export async function publish(id: string, post: Post, token: string, siteId: str
     return { url: publicUrl(data.url), views: Number(data.page_views_count) || 0 };
   }
   if (id === "wordpress") {
-    const data = await remoteJson("https://public-api.wordpress.com/rest/v1.2/sites/" + encodeURIComponent(siteId) + "/posts/new", auth, { title: post.title, content: postHtml(post), excerpt: post.excerpt, status: "publish", tags: tags.join(",") });
+    const data = await remoteJson("https://public-api.wordpress.com/rest/v1.1/sites/" + encodeURIComponent(siteId) + "/posts/new", auth, { title: post.title, content: postHtml(post), excerpt: post.excerpt, status: "publish", tags: tags.join(",") });
     return { url: publicUrl(data.URL), views: 0 };
   }
   if (id === "blogger") {

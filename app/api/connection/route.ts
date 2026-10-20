@@ -21,9 +21,21 @@ export async function POST(request: Request) {
     if (isExtraApi(id)) await testExtra(id, token, siteId);
     else if (id === "dev") await remoteJson("https://dev.to/api/users/me", { "api-key": token });
     else if (id === "wordpress") {
-      const data = await remoteJson("https://public-api.wordpress.com/rest/v1.2/me/sites", bearer);
+      if (!siteId.trim()) return fail("Add your WordPress.com site domain or numeric site ID.");
+      const data = await remoteJson("https://public-api.wordpress.com/rest/v1.1/sites/" + encodeURIComponent(siteId), bearer);
       const wanted = siteId.toLowerCase();
-      if (!data.sites?.some((s: any) => String(s.ID) === wanted || (typeof s.URL === "string" && new URL(s.URL).hostname.toLowerCase() === wanted))) throw new Error("Token accepted, but this site is not in the account's site list. Check the site ID/domain and permissions.");
+      if (String(data.ID) !== wanted && (typeof data.URL !== "string" || new URL(data.URL).hostname.toLowerCase() !== wanted)) throw new Error("The token did not resolve to the selected WordPress.com site.");
+      if (env.WORDPRESS_CLIENT_ID) {
+        const tokenInfoUrl = new URL("https://public-api.wordpress.com/oauth2/token-info");
+        tokenInfoUrl.searchParams.set("client_id", env.WORDPRESS_CLIENT_ID);
+        tokenInfoUrl.searchParams.set("token", token);
+        const account = await remoteJson(tokenInfoUrl.toString(), {});
+        if (String(account.blog_id) !== String(data.ID)) throw new Error("This token belongs to a different WordPress.com site.");
+        if (!String(account.scope || "").split(/[\s,]+/).some((scope) => scope === "posts" || scope === "global")) throw new Error("This WordPress.com token is missing posts access.");
+      } else {
+        await remoteJson("https://public-api.wordpress.com/rest/v1.1/sites/" + encodeURIComponent(siteId) + "/posts?context=edit&number=1", bearer);
+      }
+      if (data.is_coming_soon) return json({ ok: true, message: "Credential accepted by WordPress.com. This site is still Coming Soon; launch it in WordPress.com before expecting public article links." });
     }
     else if (id === "blogger") {
       const data = await remoteJson("https://www.googleapis.com/blogger/v3/users/self/blogs", bearer);
