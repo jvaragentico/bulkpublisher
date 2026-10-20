@@ -16,7 +16,7 @@ Copy `CREDENTIALS.example.json` to `CREDENTIALS.local.json` in your extracted fo
 
 See [fake examples showing the exact format for every token and target box](CREDENTIAL-FORMATS.md). Never substitute the example strings for real keys.
 
-## The 34 destination slots (31 services)
+## The 31 article destination slots (31 services)
 
 | Platform | What you need to provide or set up | Publishing mode / limits |
 | --- | --- | --- |

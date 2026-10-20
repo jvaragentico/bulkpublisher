@@ -6,7 +6,7 @@ const files = {};
 function walk(dir, relative = "") {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const name = entry.name, key = relative ? `${relative}/${name}` : name;
-    if (excluded.has(name) || name === "CREDENTIALS.local.json" || name.startsWith(".env") || name.startsWith(".dev.vars") || /\.(zip|tar|tsbuildinfo|log|pem)$/.test(name) || name === "wrangler.local.json") continue;
+    if (excluded.has(name) || /^CREDENTIALS.*\.local\.json$/i.test(name) || name.startsWith(".env") || name.startsWith(".dev.vars") || /\.(zip|tar|tsbuildinfo|log|pem)$/.test(name) || name === "wrangler.local.json") continue;
     if (entry.isSymbolicLink()) continue;
     if (entry.isDirectory()) walk(path.join(dir, name), key);
     else files[key] = new Uint8Array(fs.readFileSync(path.join(dir, name)));
