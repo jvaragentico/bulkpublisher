@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowRight, ArrowUpRight, Check, ChevronDown, Copy, Download, ExternalLink, Eye, FileText, Globe2, Image as ImageIcon, KeyRound, LayoutDashboard, Link2, Menu, PenLine, Plus, RefreshCw, Search, Send, Settings2, Trash2, Video, X } from "lucide-react";
 import { platforms, platformById, type Platform } from "@/lib/catalog";
+import { hosts } from "@/lib/hosts";
 import { setup } from "@/lib/platform-setup";
 import { canDeleteRemote } from "@/lib/remote-delete";
 import { isTelegraphAccount } from "@/lib/telegraph-accounts";
@@ -67,7 +68,7 @@ export default function Studio() {
     if (!file) return;
     try {
       if (file.size > 100_000) throw new Error("Credential file is too large.");
-      const parsed = JSON.parse(await file.text()) as { format?: string; connections?: Record<string, { token?: string; siteId?: string }> };
+      const parsed = JSON.parse(await file.text()) as { format?: string; connections?: Record<string, { token?: string; siteId?: string }>; hosts?: Record<string, { token?: string; secondaryToken?: string; config?: Record<string, string> }> };
       if (parsed.format !== "bulkpublisher-credentials-v1" || !parsed.connections || typeof parsed.connections !== "object") throw new Error("Choose a Bulk Publisher credentials JSON file.");
       let tokenCount = 0;
       let targetCount = 0;
@@ -83,10 +84,26 @@ export default function Studio() {
           tokenCount++;
         }
       }
+      let hostCount = 0;
+      if (parsed.hosts && typeof parsed.hosts === "object") {
+        const configs = JSON.parse(localStorage.getItem("bp-host-config") || "{}") as Record<string, Record<string, string>>;
+        for (const host of hosts) {
+          const entry = parsed.hosts[host.id];
+          if (!entry || typeof entry !== "object") continue;
+          if (typeof entry.token === "string" && entry.token.trim()) {
+            sessionStorage.setItem(`bp-host-token-${host.id}`, entry.token.trim());
+            hostCount++;
+          }
+          if (typeof entry.secondaryToken === "string" && entry.secondaryToken.trim()) sessionStorage.setItem(`bp-host-second-${host.id}`, entry.secondaryToken.trim());
+          if (entry.config && typeof entry.config === "object") {
+            const allowed = new Set(host.fields.map(field => field.key));
+            configs[host.id] = Object.fromEntries(Object.entries(entry.config).filter(([key, value]) => allowed.has(key) && typeof value === "string")) as Record<string, string>;
+          }
+        }
+        localStorage.setItem("bp-host-config", JSON.stringify(configs));
+      }
       setSessionTokens(platforms.filter(item => item.method === "api" && !!sessionStorage.getItem(`bp-token-${item.id}`)).map(item => item.id));
-      setMessage(tokenCount
-        ? `${tokenCount} publishing token${tokenCount === 1 ? "" : "s"} and ${targetCount} site target${targetCount === 1 ? "" : "s"} imported into this tab. Use Connect to test each one. Hosted workspace connections are separate.`
-        : `No publishing tokens are filled in this file. ${targetCount} site target${targetCount === 1 ? "" : "s"} imported. Fill the token fields or use a platform's Connect flow. Server settings and hosted workspace connections do not count as file imports.`);
+      setMessage(`${tokenCount} article token${tokenCount === 1 ? "" : "s"}, ${hostCount} host token${hostCount === 1 ? "" : "s"}, and ${targetCount} site target${targetCount === 1 ? "" : "s"} imported into this tab. Hosted server secrets remain separate.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Could not read credential file.");
     }
@@ -97,7 +114,9 @@ export default function Studio() {
       token: sessionStorage.getItem(`bp-token-${platform.id}`) || "",
       siteId: sessionStorage.getItem(`bp-site-${platform.id}`) || data.settings.find(item => item.platformId === platform.id)?.siteId || "",
     }]));
-    const payload = { format: "bulkpublisher-credentials-v1", connections, serverSettings: {}, notes: "This file contains only tokens in this browser tab. Hosted server secrets cannot be exported. Keep it private and import it explicitly when needed." };
+    const hostConfigs = JSON.parse(localStorage.getItem("bp-host-config") || "{}") as Record<string, Record<string, string>>;
+    const hostEntries = Object.fromEntries(hosts.map(host => [host.id, { token: sessionStorage.getItem(`bp-host-token-${host.id}`) || "", secondaryToken: sessionStorage.getItem(`bp-host-second-${host.id}`) || "", config: hostConfigs[host.id] || {} }]));
+    const payload = { format: "bulkpublisher-credentials-v1", connections, hosts: hostEntries, serverSettings: {}, notes: "This file contains only tokens in this browser tab. Hosted server secrets cannot be exported. Keep it private and import it explicitly when needed." };
     const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
     const link = document.createElement("a");
     link.href = url;
@@ -397,4 +416,5 @@ export default function Studio() {
     </div>
   );
 }
+
 
